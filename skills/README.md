@@ -11,6 +11,7 @@
 | `mccl-test` | 单机 MCCL 验收、多机 MCCL 纳管测试 | `tools/dcluster-ansible.md`、`tools/mccl-commands.md`、`tools/job-templates.md` |
 | `k8s-cleanup` | 批量删除 Pod / vcjob / 历史资源 | `tools/k8s-cleanup.md` |
 | `dcluster-machine-op` | D 集群物理机目录、日志、进程、磁盘、NPU、DNS | `tools/dcluster-ansible.md` |
+| `update-openclaw-memory` | 更新 OpenClaw memory / tools / skills / 知识库 | `TOOLS.md`、`git pull --ff-only` |
 
 优先级：
 
