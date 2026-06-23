@@ -32,7 +32,7 @@
 | 查单任务 Pending / vcjob / PodGroup / NotEnoughResources | `skills/vcjob-debug/SKILL.md` | `tools/rayctl-kubectl.md` |
 | 查某个 VC / 分区任务概览、Pending 分布、前端任务数异常 | `skills/vcjob-debug/SKILL.md` | `tools/rayctl-kubectl.md` 的分区级任务查询 |
 | 创建 / 查询 PVC、AFS、PV | `skills/pvc-afs/SKILL.md` | `tools/rayctl-kubectl.md` |
-| 单机 MUXI MCCL 维修验收 | `skills/mccl-test/SKILL.md` | `tools/dcluster-ansible.md` + `tools/mccl-commands.md` |
+| 单机 MUXI MCCL 维修验收 / MUXI 节点回收 / 机器回收 / MCCL 通过后回收 | `skills/mccl-test/SKILL.md` | `tools/dcluster-ansible.md` + `tools/mccl-commands.md` |
 | 多机 / 平台纳管 MCCL | `skills/mccl-test/SKILL.md` | `tools/rayctl-kubectl.md` + `tools/job-templates.md` |
 | 查看 D 集群物理机目录 / 日志 / NPU / 磁盘 / DNS | `skills/dcluster-machine-op/SKILL.md` | `tools/dcluster-ansible.md` |
 | 批量删除 Pod / vcjob / Failed 资源、历史 vcjob TTL 回收 | `skills/k8s-cleanup/SKILL.md` | `tools/k8s-cleanup.md` |
