@@ -38,6 +38,65 @@ for BENCH in ${BENCH_NAMES}; do
 done
 ```
 
+---
+
+## 3. 下发 mccl.sh 到目标机
+
+不要临时手写超长 `ansible -m shell -a 'cat ...'` 单行命令。
+标准做法是：先在跳板机 `sensetime` 用户下生成临时文件，再用 `ansible copy` 下发到目标机。
+
+### 3.1 在跳板机生成临时脚本
+
+```bash
+cat > /tmp/mccl.sh <<'EOF'
+#!/bin/bash
+export MACA_PATH=/opt/maca
+export LD_LIBRARY_PATH=${MACA_PATH}/lib:${MACA_PATH}/ompi/lib
+export FORCE_ACTIVE_WAIT=2
+export MCCL_PCIE_BUFFER_MODE=0
+
+GPU_NUM=4
+if [[ $1 -gt 0 && $1 -lt 65 ]]; then
+  GPU_NUM=$1
+fi
+TEST_DIR=${MACA_PATH}/samples/mccl_tests/perf/mccl_perf
+BENCH_NAMES="all_reduce_perf all_gather_perf reduce_scatter_perf sendrecv_perf alltoall_perf"
+MPI_PROCESS_NUM=${GPU_NUM}
+MPI_RUN_OPT="--allow-run-as-root -mca pml ^ucx -mca osc ^ucx -mca btl ^openib"
+for BENCH in ${BENCH_NAMES}; do
+  echo -n "The test is ${BENCH}, the maca version is " && realpath ${MACA_PATH}
+  ${MACA_PATH}/ompi/bin/mpirun -x MCCL_PCIE_BUFFER_MODE -np ${MPI_PROCESS_NUM} ${MPI_RUN_OPT} ${TEST_DIR}/${BENCH} -b 1K -e 1G -d bfloat16 -f 2 -g 1 -n 10
+done
+EOF
+chmod 755 /tmp/mccl.sh
+```
+
+### 3.2 用 ansible copy 下发到目标机
+
+```bash
+ansible all -i '<目标IP>,' -m copy -a 'src=/tmp/mccl.sh dest=/home/sensetime/mccl.sh owner=sensetime group=sensetime mode=0755'
+```
+
+### 3.3 下发后核验
+
+```bash
+ansible all -i '<目标IP>,' -m shell -a 'ls -l /home/sensetime/mccl.sh && head -5 /home/sensetime/mccl.sh'
+```
+
+### 3.4 清理跳板机临时文件
+
+```bash
+rm -f /tmp/mccl.sh
+```
+
+如果需要一条命令串行执行，按以下顺序，不要改成内联大段脚本内容：
+
+1. 在跳板机 `sensetime` 用户下 `cat > /tmp/mccl.sh <<'EOF' ... EOF`
+2. `chmod 755 /tmp/mccl.sh`
+3. `ansible ... -m copy -a 'src=/tmp/mccl.sh dest=/home/sensetime/mccl.sh ...'`
+4. `ansible ... -m shell -a 'ls -l /home/sensetime/mccl.sh'`
+5. `rm -f /tmp/mccl.sh`
+
 写入后建议权限：
 
 ```bash
@@ -47,7 +106,7 @@ chown sensetime:sensetime /home/sensetime/mccl.sh
 
 ---
 
-## 3. 标准五轮八卡测试
+## 4. 标准五轮八卡测试
 
 确认后执行：
 
@@ -57,7 +116,7 @@ ansible all -i '<目标IP>,' -m shell -a 'cd ~sensetime && LOG=mccl-$(date +%Y%m
 
 ---
 
-## 4. 查看 MCCL 日志
+## 5. 查看 MCCL 日志
 
 ```bash
 ansible all -i '<目标IP>,' -m shell -a 'cd ~sensetime && ls -lt mccl-*.log | head'
@@ -67,7 +126,7 @@ ansible all -i '<目标IP>,' -m shell -a "cd ~sensetime && grep -E 'Avg bus band
 
 ---
 
-## 5. 判断重点
+## 6. 判断重点
 
 输出结果时优先保留原始关键行：
 

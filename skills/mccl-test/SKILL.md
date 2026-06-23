@@ -55,6 +55,12 @@ ansible all -i '<目标IP>,' -m shell -a 'test -f ~sensetime/mccl.sh && ls -l ~s
 
 写入 `~sensetime/mccl.sh` 属于写操作，必须先确认。
 脚本内容以 `tools/mccl-commands.md` 的“标准单机 mccl.sh” 为准。
+下发方式不要手写长串引号，统一按 `tools/mccl-commands.md` 的“下发 mccl.sh 到目标机”执行：
+
+- 先在跳板机 `sensetime` 用户下生成 `/tmp/mccl.sh`
+- 再用 `ansible -m copy` 下发到 `/home/sensetime/mccl.sh`
+- 下发后立即 `ls -l` / `head` 核验
+- 最后清理跳板机临时文件
 
 ### 5. 执行五轮八卡测试
 
