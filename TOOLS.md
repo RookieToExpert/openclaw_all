@@ -36,6 +36,7 @@
 | 多机 / 平台纳管 MCCL | `skills/mccl-test/SKILL.md` | `tools/rayctl-kubectl.md` + `tools/job-templates.md` |
 | 查看 D 集群物理机目录 / 日志 / NPU / 磁盘 / DNS | `skills/dcluster-machine-op/SKILL.md` | `tools/dcluster-ansible.md` |
 | 批量删除 Pod / vcjob / Failed 资源、历史 vcjob TTL 回收 | `skills/k8s-cleanup/SKILL.md` | `tools/k8s-cleanup.md` |
+| 更新 OpenClaw memory / tools / skills / 知识库 | `skills/update-openclaw-memory/SKILL.md` | `git pull --ff-only` |
 | 查询节点属于哪个 vcluster | `MEMORY.md` 入口路由 | `tools/rayctl-kubectl.md` 的节点查询 |
 | 创建训练 / 推理任务 | `MEMORY.md` 写操作确认 | `tools/job-templates.md` |
 | 查询故障 / 维修记录 | `MEMORY.md` 节点维修原则 | `tools/fault-records.md` |
