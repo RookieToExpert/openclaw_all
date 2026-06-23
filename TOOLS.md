@@ -29,7 +29,7 @@
 
 | 用户请求 | 先读 | 再读 |
 |---|---|---|
-| 查单任务 Pending / vcjob / PodGroup / NotEnoughResources | `skills/vcjob-debug/SKILL.md` | `tools/rayctl-kubectl.md` |
+| 查单任务 Pending, error, failed / vcjob / PodGroup / NotEnoughResources | `skills/vcjob-debug/SKILL.md` | `tools/rayctl-kubectl.md` |
 | 查某个 VC / 分区任务概览、Pending 分布、前端任务数异常 | `skills/vcjob-debug/SKILL.md` | `tools/rayctl-kubectl.md` 的分区级任务查询 |
 | 创建 / 查询 PVC、AFS、PV | `skills/pvc-afs/SKILL.md` | `tools/rayctl-kubectl.md` |
 | 单机 MUXI MCCL 维修验收 / MUXI 节点放回 / 机器uncordon / MCCL 通过后放回 | `skills/mccl-test/SKILL.md` | `tools/dcluster-ansible.md` + `tools/mccl-commands.md` |
