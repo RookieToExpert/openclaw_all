@@ -1,109 +1,89 @@
-# pvc-afs Skill
+# skills/pvc-afs/SKILL.md - AFS / PVC / PV 生命周期
 
 ## 触发条件
 
-用户询问以下任意问题时使用本 skill：
+用于 AFS / PVC / PV 生命周期相关问题，包括：
 
-- AFS / PVC / PV 查询。
-- PVC 创建。
-- PVC Pending / Bound 异常。
-- 任务挂载 PVC 失败。
-- AFS 名称、UID、secret、Host PV 映射。
+* AFS / PVC / PV 查询。
+* Host PV 映射查询。
+* PVC 创建。
+* PVC Pending / Bound 异常。
+* 任务挂载 PVC 失败。
+* AFS name、AFS UID、secretName、Host PV 定位。
 
 ## 相关工具文件
 
-- `tools/rayctl-kubectl.md`
+* `tools/rayctl-kubectl.md` → 5. AFS / PVC / PV 查询
+* `tools/rayctl-kubectl.md` → 6. 创建 PVC
+
+---
 
 ## 前置原则
 
-- 必须遵守 `MEMORY.md` 的入口路由。
-- AFS / Host PV 通常从 host cluster 视角查询。
-- vcluster PVC 必须使用对应 vcluster kubeconfig。
-- PVC 创建必须使用 rayctl，不要直接 `kubectl create pvc`。
-- PVC 命名必须为 `pvc-<afs-name>`。
-- 不要擅自给 AFS 名称加 `pvc-` 前缀。
-- 写操作必须先确认。
+* 必须遵守 `MEMORY.md` 的入口路由、写操作确认和禁止扩大范围规则。
+* AFS / Host PV 通常从 host cluster 视角查询。
+* vcluster PVC 必须使用对应 vcluster kubeconfig。
+* PVC 创建必须使用 rayctl，不要直接 `kubectl create pvc`。
+* PVC 命名必须为 `pvc-<afs-name>`。
+* 不要擅自给 AFS name 添加或删除前缀。
+* 不要给 PVC 名追加时间戳、UUID 或随机后缀。
+* PVC Pending 时必须停止后续任务创建。
 
-## 标准查询流程
+---
 
-### 1. 查询 AFS
+## 标准流程
 
-在开发机：
+### 1. 判断用户意图
 
-```bash
-export KUBECONFIG=/root/kubeconfig
-rayctl afs check <afs-name>
-rayctl afs check -l <afs-name-or-uid>
-```
+先判断属于哪类：
 
-重点记录：
+* 只查 AFS / PVC / PV：走只读查询。
+* 创建 PVC：走创建流程。
+* PVC Pending / 挂载失败：先查询 PVC / PV / Event，再判断是否能继续。
+* 创建任务依赖 PVC：先确认 PVC Bound，再允许进入任务创建。
 
-- AFS name。
-- AFS UID。
-- secretName。
-- Host PV 名称。
-- 所属租户 / vcluster。
+---
 
-### 2. 查询 vcluster PVC
+### 2. 只读查询流程
 
-先定位实际 vcluster kubeconfig：
+目标：
 
-```bash
-ls -1 /root/D
-ls -1 /root/D | grep -E '<vc关键字>'
-```
+1. 查询 AFS，获取 AFS name、UID、secretName、Host PV。
+2. 定位实际 vcluster kubeconfig。
+3. 查询 vcluster PVC 状态。
+4. 如 rayctl 返回 Host PV，再查询 Host PV。
+5. 输出 AFS / PVC / PV 的当前状态和风险。
 
-再查询：
+具体命令以 `tools/rayctl-kubectl.md` → 5. AFS / PVC / PV 查询为准。
 
-```bash
-export KUBECONFIG=/root/D/<实际 kubeconfig 文件名>
-rayctl pvc check <pvc-name>
-rayctl pvc check -l <pvc-name>
-kubectl get pvc <pvc-name> -n <namespace> -o yaml
-kubectl describe pvc <pvc-name> -n <namespace>
-```
+停止条件：
 
-### 3. 查询 Host PV
+* 用户未提供 AFS / PVC / namespace / vcluster 等关键标识，且 rayctl 无法补齐。
+* 找不到实际 vcluster kubeconfig。
+* 需要扩大范围时，先返回给用户确认。
 
-```bash
-export KUBECONFIG=/root/kubeconfig
-kubectl get pv <host-pv-name>
-kubectl get pv <host-pv-name> -o yaml
-kubectl describe pv <host-pv-name>
-```
+---
 
-## PVC 创建流程
+### 3. PVC 创建流程
 
-创建前必须向用户确认：
+创建前必须确认：
 
-- 目标 vcluster。
-- namespace。
-- AFS name。
-- AFS UID。
-- secretName。
-- PVC name。
-- size。
-- 是否会被任务挂载。
+* 目标 vcluster。
+* namespace。
+* AFS name。
+* AFS UID。
+* secretName。
+* PVC name，必须是 `pvc-<afs-name>`。
+* size。
+* 是否会被任务挂载。
 
-确认后执行：
-
-```bash
-export KUBECONFIG=/root/D/<实际 kubeconfig 文件名>
-rayctl pvc create \
-  --name pvc-<afs-name> \
-  --uid <afs-uuid> \
-  --secret <secret-name> \
-  --ns <namespace> \
-  --size 1000Mi
-```
+确认后按 `tools/rayctl-kubectl.md` → 6. 创建 PVC 执行。
 
 创建后必须检查：
 
-```bash
-rayctl pvc check pvc-<afs-name>
-kubectl get pvc pvc-<afs-name> -n <namespace> -o yaml
-kubectl describe pvc pvc-<afs-name> -n <namespace>
-```
+* `rayctl pvc check`。
+* `kubectl get pvc`。
+* `kubectl describe pvc`。
 
 如果 PVC Pending：
 
@@ -111,25 +91,42 @@ kubectl describe pvc pvc-<afs-name> -n <namespace>
 2. 输出 Pending 原因。
 3. 等用户确认后再继续。
 
-## 输出格式
+---
 
-```text
-结论：
-- AFS / PVC / PV 当前状态 ...
-证据：
-- rayctl afs check ...
-- rayctl pvc check ...
-- kubectl describe pvc/pv ...
-风险：
-- 如果继续创建任务，PVC Pending 会导致挂载失败 ...
-下一步：
-- 只读检查 ...
-- 如需创建 / 修改，等待确认 ...
-```
+### 4. 任务挂载 PVC 失败
+
+处理顺序：
+
+1. 查询 PVC 是否存在。
+2. 查询 PVC 是否 Bound。
+3. 查询 Host PV 是否存在。
+4. 查询 Pod Event / describe 输出中的挂载错误。
+5. 如果 PVC Pending 或 Host PV 异常，停止任务创建或重试。
+6. 需要改 PVC、重建 PVC 或重跑任务时，必须重新确认。
+
+---
+
+## 输出要求
+
+默认输出偏好以 `MEMORY.md` 为准。
+
+PVC 场景必须说明：
+
+* AFS 状态。
+* PVC 状态。
+* Host PV 状态。
+* 是否可以继续创建 / 重跑任务。
+* 如果不能继续，说明阻塞原因。
+
+---
 
 ## 禁止事项
 
-- 不要擅自改 AFS 名称。
-- 不要给 PVC 名追加时间戳 / UUID / 随机后缀。
-- 不要在 PVC Pending 时继续创建挂载它的任务。
-- 不要用 host cluster kubeconfig 创建 vcluster PVC。
+* 不要擅自改 AFS 名称。
+* 不要给 PVC 名追加时间戳 / UUID / 随机后缀。
+* 不要在 PVC Pending 时继续创建挂载它的任务。
+* 不要用 host cluster kubeconfig 创建 vcluster PVC。
+* 不要直接用 `kubectl create pvc` 创建 vcluster PVC。
+
+
+

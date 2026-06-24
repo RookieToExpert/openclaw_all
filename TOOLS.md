@@ -1,46 +1,32 @@
 # TOOLS.md - OpenClaw Tool Index
 
-本文件只保留工具入口索引、文件分工和高频跳转。
-长期原则、安全红线、入口路由放到 `MEMORY.md`。
+本文件只保留工具入口索引和高频跳转。
+
+长期规则、入口边界、安全红线、用户偏好以 `MEMORY.md` 为准。
+运行时优先级、skill 发现、工具选择、执行预算和停止条件以 `AGENTS.md` 为准。
 具体命令模板放到 `tools/*.md`。
 专项流程放到 `skills/<skill-name>/SKILL.md`。
 
 ---
 
-## 0. 文件分工
-
-| 文件 / 目录 | 作用 |
-|---|---|
-| `MEMORY.md` | 长期稳定原则、入口路由、安全红线、跨任务优先级 |
-| `TOOLS.md` | 工具索引，只负责告诉 OpenClaw 去哪里找命令 |
-| `tools/environment-entry.md` | 开发机、堡垒机、跳板机、远程命令通用规则 |
-| `tools/rayctl-kubectl.md` | kubeconfig、rayctl、kubectl、单任务与分区级任务查询、节点查询、AFS/PVC/PV、ECS/AIS |
-| `tools/job-templates.md` | rayctl job create 模板、vcluster 到模板映射、资源范围 |
-| `tools/dcluster-ansible.md` | D 集群物理机操作、JumpServer、expect、ansible 单 IP、批量 Ansible |
-| `tools/mccl-commands.md` | MCCL 单机测试底层命令、`mccl.sh`、日志检查命令 |
-| `tools/k8s-cleanup.md` | 批量清理 Pod / vcjob、历史 vcjob TTL 回收、断线续查和事后核验模板 |
-| `tools/fault-records.md` | 运维故障记录表入口和查询关键字 |
-| `skills/` | 按任务场景组织的 SOP，负责流程，不重复维护所有命令 |
-| `memory/YYYY-MM-DD.md` | 动态查询结果、当天状态、临时结论；下次使用前必须重新验证 |
-
----
-
 ## 1. 快速路由
 
-| 用户请求 | 先读 | 再读 |
-|---|---|---|
-| 查单任务 Pending / vcjob / PodGroup / NotEnoughResources | `skills/vcjob-debug/SKILL.md` | `tools/rayctl-kubectl.md` |
-| Failed 任务排查坏节点（Pod 日志有 HCCL timeout / ACL / 信号终止等硬件相关报错） | `skills/vcjob-debug/SKILL.md` → 5.Failed 任务坏节点排查 | `tools/rayctl-kubectl.md` + `tools/fault-records.md` |
-| 查某个 VC / 分区任务概览、Pending 分布、前端任务数异常 | `skills/vcjob-debug/SKILL.md` | `tools/rayctl-kubectl.md` 的分区级任务查询 |
-| 创建 / 查询 PVC、AFS、PV | `skills/pvc-afs/SKILL.md` | `tools/rayctl-kubectl.md` |
-| 单机 MUXI MCCL 维修验收 / MUXI 节点放回 / 机器uncordon / MCCL 通过后放回 | `skills/mccl-test/SKILL.md` | `tools/dcluster-ansible.md` + `tools/mccl-commands.md` |
-| 多机 / 平台纳管 MCCL | `skills/mccl-test/SKILL.md` | `tools/rayctl-kubectl.md` + `tools/job-templates.md` |
-| 查看 D 集群物理机目录 / 日志 / NPU / 磁盘 / DNS | `skills/dcluster-machine-op/SKILL.md` | `tools/dcluster-ansible.md` |
-| 批量删除 Pod / vcjob / Failed 资源、历史 vcjob TTL 回收 | `skills/k8s-cleanup/SKILL.md` | `tools/k8s-cleanup.md` |
-| 更新 OpenClaw memory / tools / skills / 知识库 | `skills/update-openclaw-memory/SKILL.md` | `git pull --ff-only` |
-| 查询节点属于哪个 vcluster / 查节点上有什么任务 | `MEMORY.md` 入口路由 | `tools/rayctl-kubectl.md` 的节点查询 |
-| 创建训练 / 推理任务 | `MEMORY.md` 写操作确认 | `tools/job-templates.md` |
-| 查询故障 / 维修记录 | `MEMORY.md` 节点维修原则 | `tools/fault-records.md` |
+| 用户请求                                                         | 先读                            | 再读                                                                          |
+| ------------------------------------------------------------ | ----------------------------- | --------------------------------------------------------------------------- |
+| vcjob / Volcano Job / PodGroup / Pending / Failed 单任务排障      | `skills/vcjob-debug/SKILL.md` | `tools/rayctl-kubectl.md` → 3.1 单任务查询、3.3 vcluster 内资源下钻模板、3.4 kubectl 兜底查询 |
+| NotEnoughResources / Insufficient cpu / memory / accelerator | `skills/vcjob-debug/SKILL.md` | `tools/rayctl-kubectl.md` → 3.1 单任务查询、3.5 NotEnoughResources 资源判断模板         |
+| Failed 任务疑似坏节点 / HCCL / ACL / timeout / OOM / 信号终止           | `skills/vcjob-debug/SKILL.md` | `tools/rayctl-kubectl.md` 3.1 单任务查询 → 3.6 Failed 任务节点定位模板；再读 `tools/fault-records.md` |
+| VC / 分区级任务概览、Pending 分布、前端任务数异常、历史任务堆积、哪个 VC 大量提交任务          | `skills/vcjob-debug/SKILL.md` | `tools/rayctl-kubectl.md` → 3.2 分区级任务查询                                     |
+| 已纳管 MUXI 机器维修后 MCCL 验收 / 单节点维修验收 / MCCL 通过后放回集群 / 节点 uncordon | `skills/mccl-test/SKILL.md` → 场景 A | `tools/dcluster-ansible.md` → 1/3/4；`tools/mccl-commands.md` → 1/3/4/5/6；通过后如需放回，再读 `tools/rayctl-kubectl.md` → 4. rayctl 节点查询 |
+| 新 MUXI 机器平台纳管前 MCCL 验收 / 通过 YAML 起多机 MCCL / 新机器验收纳管           | `skills/mccl-test/SKILL.md` → 场景 B | `tools/mccl-platform-yaml.md`；必要时读 `tools/rayctl-kubectl.md` → 3. 查询任务、4. rayctl 节点查询                                          |
+| Huawei / 910B / 910C 新机器平台纳管 MCCL 验收                          | `skills/mccl-test/SKILL.md` → 场景 C | 当前为未来扩展；没有明确 Huawei SOP 时停止，不得复用 MUXI YAML 或 MUXI mccl.sh                                                                      |
+| 创建训练 / 推理任务                                              | `tools/job-templates.md`                 | `tools/rayctl-kubectl.md`                              |
+| 创建 / 查询 PVC、AFS、PV                                           | `skills/pvc-afs/SKILL.md`     | `tools/rayctl-kubectl.md` → 5. AFS / PVC / PV 查询；创建 PVC 时再读 6. 创建 PVC       |
+| 批量删除 Pod / vcjob / Failed 资源、历史 vcjob TTL 回收             | `skills/k8s-cleanup/SKILL.md`            | `tools/k8s-cleanup.md`                                 |
+| 查看 D 集群物理机目录 / 日志 / NPU / 磁盘 / DNS                       | `skills/dcluster-machine-op/SKILL.md`    | `tools/dcluster-ansible.md`                            |
+| Kubernetes / vcluster 基础只读查询：节点属于哪个 vcluster、节点上有哪些 Pod / 任务、节点状态 / 资源 | 无需 skill，直接读 `tools/rayctl-kubectl.md` → 4. rayctl 节点查询 | 如需解释具体 vcjob / Pending / Failed，再读 `skills/vcjob-debug/SKILL.md` |
+| 机器类型 / 芯片类型 / vcluster 族 / IP 段 / 资源名 / 节点类型映射查询 | 无需 skill，直接读 `tools/machine-types.md` | 如需实时验证某个节点或 IP，再读 `tools/rayctl-kubectl.md` → 4. rayctl 节点查询 |                                       
+| 查询故障 / 维修记录                                              | `tools/fault-records.md`                 | -                                                      |
 
 ---
 
@@ -65,9 +51,8 @@ D 集群物理机操作入口：
 
 ## 3. 使用约定
 
-- 需要流程判断时，优先看 `skills/<skill>/SKILL.md`。
-- 需要具体命令时，跳到 `tools/*.md`。
-- 如果 skill 与 `MEMORY.md` 冲突，以 `MEMORY.md` 为准。
-- 如果 skill 与 `tools/*.md` 命令参数冲突，以 `tools/*.md` 最新模板为准。
-- 写操作必须遵守 `MEMORY.md` 的确认机制。
-- 动态查询结果不要写回 `MEMORY.md` 或 `TOOLS.md`，写入 `memory/YYYY-MM-DD.md` 并标注复核要求。
+* 需要流程判断时，读 `skills/<skill-name>/SKILL.md`。
+* 需要具体命令时，读对应 `tools/*.md`。
+* 需要安全边界、入口判断、写操作确认时，以 `MEMORY.md` 为准。
+* 需要运行时优先级、执行预算、停止条件时，以 `AGENTS.md` 为准。
+* 动态查询结果不要写回 `MEMORY.md` 或 `TOOLS.md`，写入 `memory/YYYY-MM-DD.md` 并标注复核要求。

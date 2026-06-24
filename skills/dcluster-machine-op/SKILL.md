@@ -1,18 +1,20 @@
-# dcluster-machine-op Skill
+# skills/dcluster-machine-op/SKILL.md - D 集群物理机器操作
 
 ## 触发条件
 
-用户询问以下任意问题时使用本 skill：
+用于 D 集群物理机器 / Linux 系统级查询和操作，包括：
 
 - 查看某台 D 集群物理机目录、文件、日志。
 - 查看进程、磁盘、内存、CPU、NPU、网卡、路由、DNS。
-- 在某台物理机上执行本地脚本。
 - 检查 `~sensetime`、`mccl.sh`、本地服务状态。
+- 在某台物理机上执行本地脚本。
 
 ## 相关工具文件
 
 - `tools/dcluster-ansible.md`
 - `tools/environment-entry.md`
+
+---
 
 ## 前置原则
 
@@ -20,52 +22,80 @@
 - 入口必须是：本地 → 堡垒机 → 跳板机 → sensetime 用户 → ansible 单 IP。
 - Ansible 单 IP 只能在跳板机 sensetime 用户下执行。
 - 不要在本地 OpenClaw exec 环境直接执行 ansible。
-- 不要在开发机执行 D 集群机器类 ansible。
-- 只读查询可以直接执行。
+- 不要在 D 集群开发机执行物理机器类 ansible。
+- 只读查询可以执行。
 - 写操作、脚本执行、重启、改配置、删除文件必须先确认。
+
+---
 
 ## 标准流程
 
 ### 1. 判断是否物理机器操作
 
-如果用户说：
+以下请求走本 skill：
 
-- “看这个 IP 的目录”。
-- “看这台机器的日志”。
-- “看 mx-smi / 磁盘 / 内存 / 网卡 / DNS”。
-- “跑机器上的脚本”。
+- 看某个 IP / hostname 的目录、文件、日志。
+- 看 mx-smi / 磁盘 / 内存 / 网卡 / DNS。
+- 看进程、本地服务、本地脚本。
+- 跑机器上的脚本。
 
-全部走本 skill。
+以下请求不走本 skill：
 
-如果用户说：
+- 查询节点属于哪个 vcluster。
+- 查询节点上有哪些 Pod / 任务。
+- cordon / uncordon Kubernetes node。
+- 查看 Pod 调度到哪个节点。
 
-- “这个节点属于哪个 vc”。
-- “cordon / uncordon node”。
-- “看 Pod 调度到哪个节点”。
+这些属于 Kubernetes / rayctl 场景，应走 `tools/rayctl-kubectl.md` 或对应 skill。
 
-这是 Kubernetes / rayctl 场景，不走本 skill。
+---
 
-### 2. 进入跳板机 sensetime
+### 2. 进入跳板机 sensetime 用户
 
-手动流程见 `tools/dcluster-ansible.md 的“手动进入跳板机流程”`。
-expect 模板见 `tools/dcluster-ansible.md 的 expect 模板`。
+手动进入方式见：
 
-### 3. 只读查询模板
+- `tools/dcluster-ansible.md` → 1. 手动进入跳板机流程
 
-```bash
-ansible all -i '<目标IP>,' -m shell -a 'hostname && date'
-ansible all -i '<目标IP>,' -m shell -a 'ls -la ~sensetime/'
-ansible all -i '<目标IP>,' -m shell -a 'df -h'
-ansible all -i '<目标IP>,' -m shell -a 'free -h'
-ansible all -i '<目标IP>,' -m shell -a 'mx-smi'
-ansible all -i '<目标IP>,' -m shell -a 'ip addr'
-ansible all -i '<目标IP>,' -m shell -a 'ip route'
-ansible all -i '<目标IP>,' -m shell -a 'cat /etc/resolv.conf'
-ansible all -i '<目标IP>,' -m shell -a 'ps -ef | head -50'
-ansible all -i '<目标IP>,' -m shell -a 'tail -n 100 <log-path>'
-```
+自动进入模板见：
 
-### 4. 写操作确认模板
+- `tools/dcluster-ansible.md` → 2. expect 自动进入跳板机模板
+
+执行 ansible 前必须确认当前 shell 是跳板机 sensetime 用户。
+
+---
+
+### 3. 只读查询
+
+常见只读查询命令见：
+
+- `tools/dcluster-ansible.md` → 3. 只读单机查询模板
+
+只读查询包括：
+
+- hostname / date。
+- 目录。
+- 磁盘。
+- 内存。
+- mx-smi。
+- 网卡。
+- 路由。
+- DNS。
+- 进程。
+- 日志 tail。
+
+---
+
+### 4. 写操作
+
+写操作包括但不限于：
+
+- 修改文件。
+- 删除文件。
+- 创建临时脚本。
+- 执行影响业务的脚本。
+- 重启服务。
+- 重启机器。
+- 批量 ansible 写操作。
 
 执行前必须向用户展示：
 
@@ -77,29 +107,32 @@ ansible all -i '<目标IP>,' -m shell -a 'tail -n 100 <log-path>'
 风险：
 回滚 / 停止方式：
 请确认是否执行。
-```
+``` 
 
-确认后再执行：
+确认后再按 `tools/dcluster-ansible.md` 执行。
 
-```bash
-ansible all -i '<目标IP>,' -m shell -a '<写操作命令>'
-```
+复杂命令、长命令、多行命令优先写临时脚本；创建临时脚本属于写操作。
 
-## 输出格式
+---
 
-```text
-结论：
-证据：
-- hostname/date ...
-- 命令输出 ...
-判断：
-下一步：
-```
+## 输出要求
+
+默认输出偏好以 `MEMORY.md` 为准。
+
+物理机查询必须说明：
+
+* 目标 IP / hostname。
+* 执行入口是否为跳板机 sensetime 用户。
+* 已执行的只读命令。
+* 关键结果。
+* 是否需要进一步写操作确认。
+
+---
 
 ## 禁止事项
 
-- 不要把物理机器查询发到开发机。
-- 不要从开发机 SSH 到目标物理节点。
-- 不要使用 inventory 作为单机查询默认方式。
-- 不要在没有确认当前 shell 是跳板机 sensetime 用户时执行 ansible。
-- 不要把机器脚本执行当成只读操作。
+* 不要把物理机器查询发到 D 集群开发机。
+* 不要从开发机 SSH 到目标物理节点。
+* 不要使用 inventory 作为单机查询默认方式。
+* 不要在没有确认当前 shell 是跳板机 sensetime 用户时执行 ansible。
+* 不要把机器脚本执行当成只读操作。
