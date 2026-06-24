@@ -667,11 +667,15 @@ kubectl uncordon "$NODE"
 ```bash
 export KUBECONFIG=/root/kubeconfig
 
-AFS='<afs-name-or-uid>'
+AFS='<afs-name>'
 
 rayctl afs check "$AFS"
 rayctl afs check -l "$AFS"
 ```
+
+输出中 HOST PVC 字段的 `quark-afs-pvc-` 后面的部分即为 AFS UID。
+
+例如 HOST PVC 为 `quark-afs-pvc-019bff32-37fc-7933-bf7e-8069aa9851b0`，则 UID 为 `019bff32-37fc-7933-bf7e-8069aa9851b0`。
 
 ### 5.2 查询 PVC
 
@@ -716,15 +720,16 @@ kubectl describe pv "$PV"
 
 创建 PVC 是写操作，执行前必须确认。
 
-前置确认：
+前置确认：AFS 名称、AFS UID、secret name 三个必须提供，缺一不可，缺少任何一个必须停下问用户，不得自行查找。
+其他参数（vcluster、namespace、PVC 名称、size 等）用户没提供则用默认值。
 
+* AFS 名称（必须）。
+* AFS UID（必须）。
+* secret name（必须）。
 * vcluster kubeconfig。
-* namespace。
-* AFS 名称。
-* AFS UID。
-* secret name。
-* PVC 名称。
-* size。
+* namespace（默认 default）。
+* PVC 名称（默认 pvc-<afs-name>）。
+* size（默认 1000Mi）。
 * 影响范围。
 * PVC Pending 后是否停止任务创建。
 

@@ -24,6 +24,7 @@ OpenClaw 必须按 SOP 执行，不得自行扩展排障范围。
 * 禁止用 host cluster kubeconfig 查询 vcluster 内 vcjob / PodGroup。
 * 禁止混用 Kubernetes 入口和物理机入口。
 * 禁止执行 SOP 之外的高风险动作。
+* 禁止凭记忆编造命令。任何集群操作前，必须通过 TOOLS.md 找到对应入口，命中 tools/*.md 或 skills/*/SKILL.md 后，先读取其内容，再按模板执行命令。
 
 ---
 
