@@ -2,6 +2,9 @@
 
 本文件只保留工具入口索引和高频跳转。
 
+命中 skills/<skill-name>/SKILL.md 的场景，必须先读取对应 skill，再读取右侧 tools 小节。
+不得只读 tools 后直接执行命令。
+TOOLS.md 只负责路由，不负责替代 SOP。
 长期规则、入口边界、安全红线、用户偏好以 `MEMORY.md` 为准。
 运行时优先级、skill 发现、工具选择、执行预算和停止条件以 `AGENTS.md` 为准。
 具体命令模板放到 `tools/*.md`。

@@ -48,7 +48,7 @@
 1. 判断用户意图：查询 / 排障 / 创建 / 修改 / 删除 / 知识库维护。
 2. 判断对象类型：Kubernetes / vcluster / 物理机 / MCCL / AFS-PVC-PV / OpenClaw 配置。
 3. 读取 `MEMORY.md` 获取入口边界和安全红线。
-4. 读取 `TOOLS.md` 获取候选 skill 或工具索引。
+4. 读取 `TOOLS.md` 获取候选 skill 或工具索引。如果 TOOLS.md 快速路由命中某个 skills/<skill-name>/SKILL.md，必须先读取该 skill，再执行任何命令。
 5. 只加载当前请求最匹配的 1 个主 skill。
 6. 只有当前 skill 明确需要具体命令时，才读取对应 `tools/*.md`。
 7. 先做只读验证。
@@ -57,6 +57,7 @@
 
 禁止：
 
+* 不得把 TOOLS.md 当成 SOP；TOOLS.md 只是路由索引。
 * 不要一开始加载所有 skill。
 * 不要一开始加载所有 `tools/*.md`。
 * 不要把历史动态记录当作实时事实。
