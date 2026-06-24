@@ -90,21 +90,37 @@ rayctl -k /root/D/<实际 kubeconfig 文件名> job get <job-name-or-pod-name-or
 
 ### 3.1 单任务查询
 
-host cluster 视角快速定位：
+标准流程：
+
+1. 先通过 host cluster kubeconfig 用 rayctl 定位任务所属 VC：
 
 ```bash
 export KUBECONFIG=/root/kubeconfig
 rayctl job get <job-name-or-pod-name-or-uid>
 ```
 
-如果 rayctl 要求 vcluster kubeconfig，先定位真实文件名：
+输出包含 VC 列，确定任务在哪个 vcluster。
+
+2. 找到对应 vcluster 的 kubeconfig：
 
 ```bash
-ls -1 /root/D
 ls -1 /root/D | grep -E '<vc关键字>'
 ```
 
-再查：
+注意：rayctl 输出的 `VC` 显示名不保证等于 `/root/D/` 文件名，需要核实。
+
+3. 切到 vcluster kubeconfig 查询 vcjob / PodGroup / Pod 详细信息和创建时间：
+
+```bash
+export KUBECONFIG=/root/D/<实际 kubeconfig 文件名>
+kubectl get vcjob <job-name> -n <namespace> -o wide
+kubectl get podgroup <podgroup-name> -n <namespace>
+kubectl get pod -n <namespace> | grep <job-name>
+kubectl describe pod <pod-name> -n <namespace>
+kubectl get pod <pod-name> -n <namespace> -o yaml | grep creationTimestamp
+```
+
+如果 rayctl 在 HC 阶段要求 vcluster kubeconfig，也可以直接走 vcluster 查：
 
 ```bash
 rayctl -k /root/D/<实际 kubeconfig 文件名> job get <job-name-or-pod-name-or-uid>
@@ -199,6 +215,16 @@ rayctl node get 'node-role.compute.sensecore.cn/prod=ecs'
 rayctl node check <node-name-or-ip>
 rayctl node describe <node-name-or-ip>
 ```
+
+查某个节点上是否有任务 / Pod 在运行：
+
+```bash
+export KUBECONFIG=/root/kubeconfig
+rayctl node check <node-ip-or-hostname>
+```
+
+输出包含：所属 VC、GPU/CPU/MEM 占用、PODS 数及具体 Pod 列表。
+适用于「看某个节点上跑的是什么任务」「节点是否空闲」。
 
 节点调度控制，写操作，执行前必须确认：
 
