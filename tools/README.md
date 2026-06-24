@@ -36,6 +36,7 @@ TOOLS.md
 | `mccl-commands.md`      | 已纳管 MUXI 维修后宿主机 MCCL 单机测试命令和日志检查                              | 维修后单节点 MCCL 验收                                      |
 | `mccl-platform-yaml.md` | 新机器平台纳管前 MCCL YAML / vcjob / PodGroup 模板和检查命令                 | 新 MUXI 机器纳管前通过平台任务跑 MCCL                            |
 | `k8s-cleanup.md`        | Kubernetes 清理类命令模板                                            | 批量删除 Pod、vcjob TTL patch、Aborted 清理                 |
+| `hc-system-kubectl.md`  | host cluster 系统组件查询、VC 控制面定位、VC 控制面 reset、通过 prod-lepton / lepton_service 数据库调整 VC flavor 的命令模板 | 重启 VC 控制面、扩容 VC flavor、查询 HC 系统组件 |
 | `fault-records.md`      | 运维故障 / 维修记录表查询                                                | Failed 任务疑似坏节点、维修记录对照                               |
 
 ---
@@ -203,6 +204,32 @@ TOOLS.md
 
 ```text
 skills/k8s-cleanup/SKILL.md
+```
+
+---
+
+### `hc-system-kubectl.md`
+
+保存 host cluster 系统组件操作命令模板。
+
+适合：
+
+* 确认 HC / VC kubeconfig 类型。
+* 查询 HC namespace 下 VC 控制面 Pod、owner、replicas、selector。
+* 精确 delete 控制面 Pod 触发重建。
+* 通过 `prod-lepton` / `lepton_service` 数据库调整 VC flavor。
+* 操作后复核。
+
+不适合：
+
+* HC 系统组件操作的流程判断。
+* 什么时候允许 delete / SQL update。
+* 缺少标识时是否继续扩大范围。
+
+这些流程判断放在：
+
+```text
+skills/hc-system-op/SKILL.md
 ```
 
 ---

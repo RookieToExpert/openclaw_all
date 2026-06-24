@@ -72,6 +72,7 @@ export KUBECONFIG=/root/D/ai4chem
 
 ```text
 rayctl cluster set <d|dcloud>
+rayctl cluster get <vc-name-or-uid>
 rayctl ecs check <ais-name-or-ecs-name-or-uid> [...]
 rayctl ecs login <ais-name-or-ecs-name-or-uid>
 rayctl node get [profile-or-selector]
@@ -82,6 +83,7 @@ rayctl node uncordon <node-name>
 rayctl job get <job-name-or-pod-name-or-uid> [...]
 rayctl job get cluster [-A|<vc-name>] [pending]
 rayctl job create <template>
+rayctl user get <username-or-userid> [--jobs]
 rayctl afs check <afs-name-or-uid> [...]
 rayctl pvc check <pvc-name> [...]
 rayctl pvc create
@@ -570,7 +572,9 @@ done
 
 ---
 
-## 4. rayctl 节点查询
+## 4. rayctl 基础查询
+
+### 4.1 节点查询
 
 节点列表：
 
@@ -660,6 +664,95 @@ kubectl uncordon "$NODE"
 
 ---
 
+### 4.2 vcluster 与 host namespace 映射查询
+
+用于查看某个 vcluster 在 host cluster 中的控制面 namespace，以及逻辑 namespace 到 host resource namespace 的映射关系。
+
+```bash
+export KUBECONFIG=/root/kubeconfig
+
+VC='<vc-name-or-uid>'
+
+rayctl cluster get "$VC"
+```
+
+示例：
+
+```bash
+rayctl cluster get vc-a3-llmit
+rayctl cluster get vc-019d28e0-9610-74ef-a722-9242dede9e37
+```
+
+输出关注：
+
+* 分区名。
+* VC UID。
+* 控制面 namespace。
+* 资源 namespace 数量。
+* 每个 `RESOURCE NAMESPACE` 对应的 `VIRTUAL NAMESPACE`。
+
+适用场景：
+
+* 查询某个 vcluster 的控制面 namespace。
+* 查询 vcluster 内逻辑 namespace 对应的 host resource namespace。
+* 做 host cluster 侧 namespace 映射核对。
+
+边界：
+
+* 这是 host cluster 视角只读查询。
+* 它只解决 namespace 映射关系，不替代 vcluster kubeconfig 下的资源查询。
+* 需要查 vcjob / Pod / PodGroup / PVC / Event 时，仍回到对应 vcluster kubeconfig 和原有模板。
+
+---
+
+### 4.3 平台用户查询
+
+用于根据 username 或 userid 查询平台用户信息。
+
+```bash
+export KUBECONFIG=/root/kubeconfig
+
+USER_QUERY='<username-or-userid>'
+
+rayctl user get "$USER_QUERY"
+```
+
+同时查询该用户在当前租户下提交的活跃任务：
+
+```bash
+export KUBECONFIG=/root/kubeconfig
+
+USER_QUERY='<username-or-userid>'
+
+rayctl user get "$USER_QUERY" --jobs
+```
+
+示例：
+
+```bash
+rayctl user get zhangjinouwen
+rayctl user get 0198ef7e-988a-7196-8ce1-12d1bfce08e1
+rayctl user get zhangjinouwen --jobs
+```
+
+输出关注：
+
+* ID。
+* USERNAME。
+* NAME。
+* TENANT CODE。
+* STATUS。
+* SOURCE。
+* 如使用 `--jobs`，补充查看该用户在当前租户下的活跃任务。
+
+边界：
+
+* `--jobs` 只查询当前租户下的活跃任务，不等价于全平台历史任务检索。
+* 需要继续排障具体任务时，再回到 3. 查询任务。
+* 用户名、用户 ID 必须明确；缺少关键标识时停止，不要扩大范围扫描。
+
+---
+
 ## 5. AFS / PVC / PV 查询
 
 ### 5.1 查询 AFS
@@ -667,15 +760,11 @@ kubectl uncordon "$NODE"
 ```bash
 export KUBECONFIG=/root/kubeconfig
 
-AFS='<afs-name>'
+AFS='<afs-name-or-uid>'
 
 rayctl afs check "$AFS"
 rayctl afs check -l "$AFS"
 ```
-
-输出中 HOST PVC 字段的 `quark-afs-pvc-` 后面的部分即为 AFS UID。
-
-例如 HOST PVC 为 `quark-afs-pvc-019bff32-37fc-7933-bf7e-8069aa9851b0`，则 UID 为 `019bff32-37fc-7933-bf7e-8069aa9851b0`。
 
 ### 5.2 查询 PVC
 
@@ -720,16 +809,15 @@ kubectl describe pv "$PV"
 
 创建 PVC 是写操作，执行前必须确认。
 
-前置确认：AFS 名称、AFS UID、secret name 三个必须提供，缺一不可，缺少任何一个必须停下问用户，不得自行查找。
-其他参数（vcluster、namespace、PVC 名称、size 等）用户没提供则用默认值。
+前置确认：
 
-* AFS 名称（必须）。
-* AFS UID（必须）。
-* secret name（必须）。
 * vcluster kubeconfig。
-* namespace（默认 default）。
-* PVC 名称（默认 pvc-<afs-name>）。
-* size（默认 1000Mi）。
+* namespace。
+* AFS 名称。
+* AFS UID。
+* secret name。
+* PVC 名称。
+* size。
 * 影响范围。
 * PVC Pending 后是否停止任务创建。
 
