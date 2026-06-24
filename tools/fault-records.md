@@ -11,6 +11,7 @@
 ```text
 https://iqeubg8au73.feishu.cn/sheets/IC10sYPdjhvLnpt2GVGc1EZNngh
 ```
+这是一个飞书表格，直接使用 lark-cli 工具查询，记得加上`--as user`以及使用`--url`而不是`--sheet-url`。
 
 常用工作表：
 
