@@ -23,7 +23,7 @@ TOOLS.md 只负责路由，不负责替代 SOP。
 | VC / 分区级查询节点资源使用情况 / 分区有多少空闲机器 | `tools/rayctl-kubectl.md` → 3.5 NotEnoughResources 资源判断模板 | - | 
 | 已纳管 MUXI 机器维修后 MCCL 验收 / 单节点维修验收 / MCCL 通过后放回集群 / 节点 uncordon | `skills/mccl-test/SKILL.md` → 场景 A | `tools/dcluster-ansible.md` → 1/3/4；`tools/mccl-commands.md` → 1/3/4/5/6；通过后如需放回，再读 `tools/rayctl-kubectl.md` → 4.1 节点查询 |
 | 新 MUXI 机器平台纳管前 MCCL 验收 / 通过 YAML 起多机 MCCL / 新机器验收纳管           | `skills/mccl-test/SKILL.md` → 场景 B | `tools/mccl-platform-yaml.md`；必要时读 `tools/rayctl-kubectl.md` → 3. 查询任务、4.1 节点查询                                          |
-| Huawei / 910B / 910C 新机器平台纳管 MCCL 验收                          | `skills/mccl-test/SKILL.md` → 场景 C | 当前为未来扩展；没有明确 Huawei SOP 时停止，不得复用 MUXI YAML 或 MUXI mccl.sh                                                                      |
+| Huawei / 910C 新机器平台纳管 MCCL 验收                          | `skills/mccl-test/SKILL.md` → 场景 C | `tools/huawei-hccl-platform-yaml.md`  必要时读 `tools/rayctl-kubectl.md` → 3. 查询任务、4.1 节点查询                          |
 | 创建训练 / 推理任务                                              | `tools/job-templates.md`                 | `tools/rayctl-kubectl.md`                              |
 | 创建 / 查询 PVC、AFS、PV                                           | `skills/pvc-afs/SKILL.md`     | `tools/rayctl-kubectl.md` → 5. AFS / PVC / PV 查询；创建 PVC 时再读 6. 创建 PVC       |
 | 批量删除 Pod / vcjob / Failed 资源、历史 vcjob TTL 回收             | `skills/k8s-cleanup/SKILL.md`            | `tools/k8s-cleanup.md`                                 |

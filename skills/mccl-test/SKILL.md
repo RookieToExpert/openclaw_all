@@ -2,28 +2,37 @@
 
 ## 触发条件
 
-用于 MCCL 验收、MCCL 排障和 MCCL 结果判断，包括：
+用于 MCCL / HCCL 验收、通信测试、通信排障和结果判断。
+
+适用范围包括：
 
 * 已纳管 MUXI 机器维修后 MCCL 验收。
 * MCCL 通过后节点放回集群 / uncordon。
 * 新 MUXI 机器平台纳管前 MCCL 验收。
 * 通过 YAML / vcjob / PodGroup 起多机 MCCL 任务。
-* `Avg bus bandwidth`、`Out of bounds`、MCCL timeout / failed / hang。
-* Huawei / 910B / 910C 平台纳管 MCCL 验收的未来扩展。
+* Huawei 910C 新机器平台纳管前 HCCL 压测。
+* Huawei 910C SuperPod HCCL allreduce / alltoall 压测。
+* Huawei 910C 指定节点 HCCL allreduce / alltoall 压测。
+* Huawei 910C HCCL 二分法排坏节点。
+* `Avg bus bandwidth`、`alg_bandwidth`、`Out of bounds`、`check_result`、MCCL / HCCL timeout / failed / hang。
+
+Huawei 910B 暂不复用 910C SOP。除非已有明确 910B 工具文件和模板，否则遇到 Huawei 910B HCCL 请求时必须停止，说明当前 SOP 只覆盖 Huawei 910C。
 
 ---
 
 ## 1. 必须先区分场景
 
-MCCL 相关请求必须先分流，禁止混用流程。
+MCCL / HCCL 相关请求必须先分流，禁止混用流程。
 
-| 场景                    | 典型触发语                           | 入口                                                      | 宿主机跑 mccl.sh | 创建 YAML / vcjob |          uncordon |
-| --------------------- | ------------------------------- | ------------------------------------------------------- | -----------: | --------------: | ----------------: |
-| 场景 A：已纳管 MUXI 机器维修后验收 | 维修后验收、单节点验收、MCCL 通过后放回、uncordon | 堡垒机 → 跳板机 → sensetime → ansible 单 IP                    |            是 |               否 | 默认否；通过后且用户明确要求才允许 |
-| 场景 B：新 MUXI 机器平台纳管前验收 | 新机器纳管、平台纳管验收、通过 YAML 起多机 MCCL   | D 集群开发机 → vcluster kubeconfig → YAML / vcjob / PodGroup |            否 |               是 |       不适用或按纳管 SOP |
-| 场景 C：Huawei 平台纳管 MCCL | 910B / 910C 新机器纳管               | 未来扩展                                                    |           待定 |              待定 |                待定 |
+| 场景                           | 适用对象                                                | 入口                                                       | 宿主机跑脚本 | 创建 YAML / vcjob |          uncordon |
+| ---------------------------- | --------------------------------------------------- | -------------------------------------------------------- | -----: | --------------: | ----------------: |
+| 场景 A：已纳管 MUXI 机器维修后验收        | 已纳管 MUXI 单节点维修后验收                                   | 堡垒机 → 跳板机 → sensetime → ansible 单 IP                     |      是 |               否 | 默认否；通过后且用户明确要求才允许 |
+| 场景 B：新 MUXI 机器平台纳管前验收        | 新 MUXI 机器纳管前多机 MCCL                                 | D 集群开发机 → vcluster kubeconfig → YAML / vcjob / PodGroup  |      否 |               是 |       不适用或按纳管 SOP |
+| 场景 C：Huawei 910C HCCL 平台任务压测 | Huawei 910C 新机器纳管前 HCCL / SuperPod / 指定节点 / 二分法排坏节点 | D 集群开发机 → `~/D/a3-huawei-test` → YAML / vcjob / PodGroup |      否 |               是 |               不适用 |
 
 如果用户没有说清楚是“已纳管维修后验收”还是“新机器平台纳管验收”，必须停止并询问场景，不得自行选择流程。
+
+如果用户说的是 Huawei 910C HCCL，则直接进入场景 C，不要进入 MUXI 场景。
 
 ---
 
@@ -52,9 +61,18 @@ MCCL 相关请求必须先分流，禁止混用流程。
 
 ### 2.2 相关工具
 
-* `tools/dcluster-ansible.md`
-* `tools/mccl-commands.md`
-* `tools/rayctl-kubectl.md` → 4. rayctl 节点查询，仅用于通过后放回集群
+必须先读：
+
+```text
+tools/dcluster-ansible.md
+tools/mccl-commands.md
+```
+
+通过后如需放回集群，再读：
+
+```text
+tools/rayctl-kubectl.md → 4. rayctl 节点查询
+```
 
 ### 2.3 前置确认
 
@@ -138,9 +156,23 @@ MCCL 相关请求必须先分流，禁止混用流程。
 
 ### 3.2 相关工具
 
-* `tools/mccl-platform-yaml.md`
-* `tools/rayctl-kubectl.md` → 3. 查询任务、4. rayctl 节点查询
-* `tools/job-templates.md` 仅在明确使用 rayctl job create 模板时读取
+必须先读：
+
+```text
+tools/mccl-platform-yaml.md
+```
+
+必要时再读：
+
+```text
+tools/rayctl-kubectl.md → 3. 查询任务、4. rayctl 节点查询
+```
+
+仅在用户明确要求使用 `rayctl job create` 模板时，才读：
+
+```text
+tools/job-templates.md
+```
 
 ### 3.3 前置确认
 
@@ -187,26 +219,222 @@ MCCL 相关请求必须先分流，禁止混用流程。
 
 ---
 
-## 4. 场景 C：Huawei 平台纳管 MCCL
+4. 场景 C：Huawei 910C HCCL 平台任务压测
+4.1 场景定义
 
-Huawei / 910B / 910C 新机器平台纳管 MCCL 暂作为未来扩展。
+适用于 Huawei Ascend 910C 通过平台任务方式验证多机 HCCL 集合通信。
+
+入口：
+
+本地 → D 集群开发机 → vcluster kubeconfig → YAML / vcjob / PodGroup
+
+当前 Huawei 910C 测试入口：
+
+ssh -p 32222 root@10.140.158.149
+export KUBECONFIG=~/D/a3-huawei-test
+
+默认 namespace：
+
+NS=default
+
+强规则：
+
+Huawei 910C 走 HCCL 验收，不复用 MUXI 的 mccl.sh。
+不复用 MUXI YAML。
+不直接在物理机上手工跑脚本代替平台任务验收。
+默认通过 YAML / vcjob / PodGroup 创建平台任务。
+创建 YAML / vcjob、删除任务、打 label、删 label 都属于写操作，必须确认。
+当前 910C 每节点按 16 卡计算。
+HCCL mpirun 必须使用容器内 sshd -p 2222。
+不得把 HCCL mpirun 的 Hydra 端口改成 22。
+Huawei 910B 暂不复用本 SOP，除非已有独立 910B 工具文件和模板。
+4.2 相关工具
+
+必须先读：
+
+tools/huawei-hccl-platform-yaml.md
+
+必要时再读：
+
+tools/rayctl-kubectl.md → 节点查询、任务查询、Pod / PodGroup / Event / 日志查询
+
+不要读取 tools/job-templates.md，除非用户明确要求改成 rayctl job create 方式。
+
+4.3 前置确认
+
+创建任务前必须明确：
+
+vcluster / kubeconfig。
+namespace。
+节点数。
+测试方法：allreduce 或 alltoall。
+调度方式：SuperPod 或指定节点。
+SuperPod ID，或指定节点 IP 列表。
+image。
+CANN / HCCL test 路径。
+generateName。
+是否创建任务。
+是否清理旧任务。
+是否需要二分法排坏节点。
+
+不明确时，只允许做只读确认，不得创建任务。
+
+4.4 测试范围
+
+Huawei 910C HCCL 测试范围由用户当次指定，不在 SOP 中固定。
+
+用户可以指定：
+
+固定节点列表
+SuperPod X
+某个节点集合
+单组 allreduce
+单组 alltoall
+allreduce + alltoall
+完整测试矩阵
+二分法排坏节点
 
 规则：
 
-* 不复用 MUXI 的 `mccl.sh`。
-* 不复用 MUXI YAML，除非工具文件明确支持。
-* 需要新增 Huawei 专用模板、镜像、资源名、环境变量和判断标准。
-* 当前没有明确 SOP 时，停止并说明需要补充 Huawei 纳管 MCCL 流程。
+不要在 skill 中固定 IP 列表。
+不要在 skill 中固定 SuperPod ID。
+不要默认扩展成完整测试矩阵。
+用户只要求一组测试时，只执行该组。
+用户要求完整矩阵时，再根据用户提供的节点范围 / SuperPod 范围生成多组任务。
+每组任务创建前都必须单独预览关键字段。
+每组任务创建都属于写操作，必须确认。
+4.5 标准流程
+进入 D 集群开发机。
+切换 Huawei 910C 测试 kubeconfig。
+确认 namespace、节点数、测试方法、调度方式、image、CANN / HCCL test 路径。
+读取 tools/huawei-hccl-platform-yaml.md。
+根据用户指定范围生成 YAML。
+按 tools 文件的字段同步规则检查 YAML。
+创建前展示关键字段。
+用户确认后创建任务。
+等待 Pod 调度、镜像拉取、sshd 启动和 DNS 就绪。
+查看 vcjob / Pod / PodGroup / Event / master logs。
+根据日志判断基础通信是否成功。
+如果日志无结果但 Pod 都 Running，可以进入 master 手动补跑。
+如果用户要求二分法排坏节点，进入 4.8。
+清理任务前必须再次确认。
+4.6 创建前预览
 
+创建前必须展示：
+
+YAML 路径
+namespace
+generateName
+image
+节点数
+测试方法
+调度方式
+SuperPod ID 或指定节点列表
+sp-block
+minAvailable
+master replicas
+worker replicas
+mpirun 总卡数
+TEST_BIN
+HYDRA_LAUNCHER_EXTRA_ARGS
+
+发现以下任意问题必须停止：
+
+master 和 worker 调度规则不一致。
+SuperPod 和指定节点调度同时存在。
+节点数相关字段不一致。
+Hydra 端口不是 2222。
+YAML 关键字段和用户要求不一致。
+用户未确认写操作。
+4.7 结果判断
+
+通过条件至少包括：
+
+Pod / PodGroup 状态符合预期。
+master log 有 HCCL test 结果。
+check_result 为 success。
+未出现 error / failed / timeout / hang。
+未出现 HcclGetRootInfo failed。
+未出现 received invalid data from root process 0。
+未出现 Could not resolve hostname。
+alg_bandwidth / Avg bus bandwidth 达到用户提供的验收标准。
+
+如果用户未提供带宽阈值，只能判断基础通信是否成功，不能判断是否满足最终纳管带宽标准。
+
+输出必须区分：
+
+基础通信结果：通过 / 不通过 / 不确定
+纳管带宽结论：通过 / 不通过 / 不确定，需要用户提供阈值
+4.8 二分法排坏节点
+
+二分法目标是通过多轮缩小失败节点范围，定位坏节点或最小失败集合。
+
+标准策略：
+
+1. 一个大规模任务失败，例如 48 机失败。
+2. 停掉失败的大任务。
+3. 基于同一批节点，起两个较小任务，例如两个 24 机任务。
+4. 等待两个任务结果。
+5. 成功的一组可以保留，不继续拆。
+6. 失败的一组需要停掉，并继续拆成更小任务，例如两个 12 机任务。
+7. 重复以上流程，直到定位到单节点或最小失败集合。
+
+规则：
+
+二分法不是只改 hostfile。
+每一轮都应重新生成 YAML。
+每一轮都必须按 tools/huawei-hccl-platform-yaml.md 的字段同步规则检查 YAML。
+每一轮创建任务前必须预览关键字段。
+每一轮创建任务都属于写操作，必须确认。
+停掉失败任务属于写操作，必须确认。
+成功任务是否保留，由用户决定；不得自动删除。
+不要自动扩大到用户未指定的节点范围。
+不要固定每次必须二等分；用户可以指定按 24/12/6/3/1 或其他分组方式继续排查。
+
+二分法输出建议：
+
+当前轮次：
+原始失败任务：
+当前失败节点集合：
+本轮新建任务：
+- 任务 A：节点数 / 节点列表 / 测试结果
+- 任务 B：节点数 / 节点列表 / 测试结果
+成功集合：
+失败集合：
+下一轮建议：
+需要用户确认的写操作：
+4.9 清理
+
+以下操作都属于写操作，必须确认：
+
+删除 vcjob / YAML 任务。
+删除 Pod / PodGroup。
+删除 label。
+删除临时 YAML 生成的资源。
+停掉二分法中的失败任务。
+
+清理前必须展示：
+
+vcluster / kubeconfig
+namespace
+job name
+YAML 路径
+将删除的资源类型
+影响范围
+dry-run 或预览命令
+
+用户确认后才允许执行真实清理。
 ---
 
 ## 5. 输出要求
 
 默认输出偏好以 `MEMORY.md` 为准。
 
-MCCL 结果必须保留原始关键行：
+MCCL / HCCL 结果必须保留原始关键行：
 
 * `Avg bus bandwidth`
+* `alg_bandwidth`
+* `check_result`
 * `Out of bounds`
 * `rc=`
 * error / failed / timeout / hang
@@ -245,6 +473,27 @@ MCCL 结果必须保留原始关键行：
 - 是否需要清理任务 / label：
 ```
 
+场景 C 输出建议：
+
+```text
+场景：Huawei 910C HCCL 平台任务压测
+结论：
+证据：
+- Pod / PodGroup 状态：
+- HCCL 结果原始行：
+- check_result：
+- alg_bandwidth / Avg bus bandwidth：
+- error / failed / timeout / hang：
+判断：
+- 基础通信结果：
+- 纳管带宽结论：
+- 待验证点：
+下一步：
+- 是否需要补跑：
+- 是否需要二分排坏节点：
+- 是否需要清理任务：
+```
+
 ---
 
 ## 禁止事项
@@ -255,4 +504,8 @@ MCCL 结果必须保留原始关键行：
 * 不要为了单机维修验收先 uncordon。
 * 不要在本地或开发机直接执行 D 集群机器 ansible。
 * 不要在没有用户确认时创建任务、打 label、删 label、删除任务或 uncordon。
-* 不要擅自汇总用户要求保留原始输出的 MCCL 结果。
+* 不要擅自汇总用户要求保留原始输出的 MCCL / HCCL 结果。
+* 不要把 Huawei 910C HCCL 任务走 MUXI `mccl.sh`。
+* 不要复用 MUXI YAML 跑 Huawei 910C HCCL。
+* 不要把 HCCL mpirun 的 Hydra 端口改成 22。
+* 不要二分法时只改 hostfile，不改 YAML 节点数相关字段。

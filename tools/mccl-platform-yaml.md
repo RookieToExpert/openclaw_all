@@ -215,25 +215,3 @@ kubectl get pods -n "$NS" -o wide | grep -F -- "$JOB"
 * 预览命令或 dry-run。
 
 ---
-
-## 2. Huawei 平台纳管 MCCL
-
-当前未定义。
-
-后续新增时必须补充：
-
-* 适用 vcluster / 机器类型。
-* 资源名。
-* 镜像。
-* YAML 模板。
-* 环境变量。
-* HCCL / 集合通信测试命令。
-* 通过标准。
-* 常见失败模式。
-* 清理方式。
-
-当前没有 Huawei SOP 时：
-
-* 不复用 MUXI `mccl.sh`。
-* 不复用 MUXI YAML。
-* 停止并说明需要补充 Huawei 平台纳管 MCCL 流程。
