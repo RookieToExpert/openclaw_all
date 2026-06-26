@@ -87,6 +87,7 @@ tools/rayctl-kubectl.md → 4. rayctl 节点查询
 * 是否保持节点当前 cordon / 维修状态。
 * MCCL 通过后是否需要放回集群。
 
+
 ### 2.4 只读检查
 
 按 `tools/dcluster-ansible.md` 和 `tools/mccl-commands.md` 执行：
@@ -115,6 +116,7 @@ tools/rayctl-kubectl.md → 4. rayctl 节点查询
 * 是否出现 error / failed / timeout / hang。
 
 输出时必须保留原始关键行，不擅自改写原始结果。
+测试后必须残留核验，放回前必须 MCCL_RESIDUAL_CLEAN。
 
 ### 2.6 通过后放回集群
 
@@ -127,6 +129,15 @@ tools/rayctl-kubectl.md → 4. rayctl 节点查询
 
 放回流程：
 
+只有同时满足以下条件才允许进入 uncordon：
+1. MCCL 测试通过。
+2. 测试结束后已执行残留清理，或确认无残留。
+3. 放回前核验输出 `MCCL_RESIDUAL_CLEAN`。
+4. 用户明确要求“放回 / uncordon”。
+5. 已确认 Kubernetes node name。
+6. 已完成写操作确认。
+
+如果残留核验失败，必须停止，不得 uncordon。
 * 切回 Kubernetes 入口。
 * 使用 `tools/rayctl-kubectl.md` → 4. rayctl 节点查询。
 * 优先 `rayctl node uncordon <node-name>`。

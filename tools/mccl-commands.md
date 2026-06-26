@@ -136,3 +136,170 @@ ansible all -i '<目标IP>,' -m shell -a "cd ~sensetime && grep -E 'Avg bus band
 rc=0
 error / failed / timeout / hang
 ```
+
+---
+
+## 7. MCCL 测试后残留进程清理
+
+适用于“已纳管 MUXI 机器维修后验收”场景。
+
+MCCL 测试无论成功、失败、超时、hang 还是被中断，放回集群前都必须执行残留进程核验。
+如果发现残留，必须清理后再次核验。
+只有核验输出 `MCCL_RESIDUAL_CLEAN`，才允许继续进入 `rayctl node uncordon` 确认流程。
+
+`mx-smi --kill-all-process` 当前版本支持，但属于高风险清理动作，只能在确认目标节点是维修验收节点、且不承载业务任务后执行。
+
+---
+
+### 7.1 残留进程核验，只读
+
+用于：
+
+* MCCL 测试后检查。
+* 清理后复查。
+* 放回 / uncordon 前最终核验。
+
+```bash
+TARGET_IP='<目标IP>'
+
+ansible all -i "${TARGET_IP}," -m shell -a '
+set +e
+
+PS_PROC_RE="all_reduce_perf|all_gather_perf|reduce_scatter_perf|sendrecv_perf|alltoall_perf|mpirun|orterun|orted|prted"
+MX_PROC_RE="all_reduce_perf|all_gather_perf|reduce_scatter_perf|sendrecv_perf|alltoall_perf|mpirun|orterun|orted|prted|python3|python3.10"
+
+echo "===== mx-smi normal ====="
+mx-smi || true
+
+echo "===== mx-smi show process ====="
+mx-smi --show-process || true
+
+echo "===== mx-smi show all process ====="
+mx-smi --show-all-process || true
+
+echo "===== MCCL / MPI linux processes ====="
+LEFT_PS="$(
+  ps -eo pid=,comm=,args= \
+  | awk -v re="$PS_PROC_RE" '"'"'
+      $0 ~ re && $2 !~ /^(bash|sh|zsh|awk|grep|pgrep|ansible|sudo)$/ {
+        print
+      }
+    '"'"'
+)"
+
+if [ -n "$LEFT_PS" ]; then
+  echo "MCCL_RESIDUAL_FOUND_IN_PS"
+  echo "$LEFT_PS"
+  exit 2
+fi
+
+if mx-smi --show-process 2>/dev/null | grep -E "$MX_PROC_RE"; then
+  echo "MCCL_RESIDUAL_FOUND_IN_MX_SMI_SHOW_PROCESS"
+  exit 3
+fi
+
+if mx-smi --show-all-process 2>/dev/null | grep -E "$MX_PROC_RE"; then
+  echo "MCCL_RESIDUAL_FOUND_IN_MX_SMI_SHOW_ALL_PROCESS"
+  exit 4
+fi
+
+echo "MCCL_RESIDUAL_CLEAN"
+'
+```
+
+判断：
+
+```text
+MCCL_RESIDUAL_CLEAN
+```
+
+表示没有发现 MCCL / MPI / MUXI 设备占用残留。
+
+如果输出以下任意结果，必须停止，不能放回集群：
+
+```text
+MCCL_RESIDUAL_FOUND_IN_PS
+MCCL_RESIDUAL_FOUND_IN_MX_SMI_SHOW_PROCESS
+MCCL_RESIDUAL_FOUND_IN_MX_SMI_SHOW_ALL_PROCESS
+```
+
+---
+
+### 7.2 清理 MCCL / MUXI 设备残留进程
+
+杀进程属于写操作 / 影响业务操作，必须确认：
+
+* 目标节点是维修验收节点。
+* 当前节点不承载业务任务。
+* 用户同意清理 MUXI 设备占用进程。
+
+确认后执行：
+
+```bash
+TARGET_IP='<目标IP>'
+
+ansible all -i "${TARGET_IP}," -m shell -a '
+set +e
+
+PS_PROC_RE="all_reduce_perf|all_gather_perf|reduce_scatter_perf|sendrecv_perf|alltoall_perf|mpirun|orterun|orted|prted"
+
+echo "===== before cleanup: mx-smi show process ====="
+mx-smi --show-process || true
+
+echo "===== before cleanup: mx-smi show all process ====="
+mx-smi --show-all-process || true
+
+echo "===== kill all MUXI device processes ====="
+sudo mx-smi --kill-all-process
+RC=$?
+echo "mx-smi --kill-all-process rc=${RC}"
+
+sleep 3
+
+echo "===== after cleanup: mx-smi show process ====="
+mx-smi --show-process || true
+
+echo "===== after cleanup: mx-smi show all process ====="
+mx-smi --show-all-process || true
+
+echo "===== after cleanup: MCCL / MPI linux processes ====="
+ps -eo pid=,comm=,args= \
+| awk -v re="$PS_PROC_RE" '"'"'
+    $0 ~ re && $2 !~ /^(bash|sh|zsh|awk|grep|pgrep|ansible|sudo)$/ {
+      print
+    }
+  '"'"'
+
+echo "CLEANUP_COMMAND_RC=${RC}"
+'
+```
+
+清理后必须重新执行：
+
+```text
+7.1 残留进程核验，只读
+```
+
+只有重新核验输出：
+
+```text
+MCCL_RESIDUAL_CLEAN
+```
+
+才允许继续放回 / uncordon。
+
+---
+
+### 7.3 放回 / uncordon 前准入条件
+
+放回集群前必须同时满足：
+
+1. MCCL 测试通过。
+2. 已执行测试后残留核验。
+3. 如发现残留，已执行残留清理。
+4. 清理后重新核验输出 `MCCL_RESIDUAL_CLEAN`。
+5. 用户明确要求“放回 / uncordon”。
+6. 已确认 Kubernetes node name。
+7. 已完成 `rayctl node uncordon` 写操作确认。
+
+如果残留核验不是 `MCCL_RESIDUAL_CLEAN`，必须停止，不得 uncordon。
