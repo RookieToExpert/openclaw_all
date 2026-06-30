@@ -236,7 +236,7 @@
 
 ### 2. 只读定位
 
-命令以 `tools/rayctl-kubectl.md` 中的 policy 小节和 `tools/hc-system-kubectl.md` → 7. `disallow-privileged-containers` policy 更新模板为准。
+命令以 `tools/rayctl-kubectl.md` 中的 policy 小节和 `tools/hc-system-kubectl.md` → 8. `disallow-privileged-containers` policy 更新模板为准。
 
 先只读确认：
 
