@@ -83,6 +83,7 @@ rayctl node uncordon <node-name>
 rayctl job get <job-name-or-pod-name-or-uid> [...]
 rayctl job get cluster [-A|<vc-name>] [pending]
 rayctl job create <template>
+rayctl policy update disallow-privileged-containers <vc-name-or-uid>
 rayctl user get <username-or-userid> [--jobs]
 rayctl afs check <afs-name-or-uid> [...]
 rayctl pvc check <pvc-name> [...]
@@ -115,6 +116,16 @@ vcluster 视角查询：
 ```bash
 export KUBECONFIG=/root/D/<实际 kubeconfig 文件名>
 rayctl -k /root/D/<实际 kubeconfig 文件名> job get <job-name-or-pod-name-or-uid>
+```
+
+policy 更新：
+
+```bash
+export KUBECONFIG=/root/kubeconfig
+
+VC_QUERY='<vc-name-or-uid>'
+
+rayctl policy update disallow-privileged-containers "$VC_QUERY"
 ```
 
 ---

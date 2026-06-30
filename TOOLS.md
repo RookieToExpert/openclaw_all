@@ -30,6 +30,7 @@ TOOLS.md 只负责路由，不负责替代 SOP。
 | 查看 D 集群物理机目录 / 日志 / NPU / 磁盘 / DNS                       | `skills/dcluster-machine-op/SKILL.md`    | `tools/dcluster-ansible.md`                            |
 | 重启 / 重置 VC 控制面、删除 HC 下 VC 控制面 Pod 触发重建 | `skills/hc-system-op/SKILL.md` | `tools/hc-system-kubectl.md` |
 | 扩容 VC / 调整 VC flavor / 修改 VC 规格 minimum、small、medium、large、unlimit | `skills/hc-system-op/SKILL.md` | `tools/hc-system-kubectl.md` |
+| 更新 `disallow-privileged-containers` policy、给某个 VC 添加 policy 例外、`rayctl policy update disallow-privileged-containers` | `skills/hc-system-op/SKILL.md` | `tools/rayctl-kubectl.md` → policy update；`tools/hc-system-kubectl.md` → 8. `disallow-privileged-containers` policy 更新模板 |
 | 查询 HC 上某个 VC 控制面 / 平台系统组件状态 | `skills/hc-system-op/SKILL.md` | `tools/hc-system-kubectl.md` |
 | Kubernetes / vcluster 基础只读查询：节点属于哪个 vcluster、节点上有哪些 Pod / 任务、节点状态 / 资源 | 无需 skill，直接读 `tools/rayctl-kubectl.md` → 4.1 节点查询 | 如需解释具体 vcjob / Pending / Failed，再读 `skills/vcjob-debug/SKILL.md` |
 | 查询某个 vcluster 在 HC 中的控制面 namespace、逻辑 namespace 与 host resource namespace 映射 | 无需 skill，直接读 `tools/rayctl-kubectl.md` → 4.2 vcluster 与 host namespace 映射查询 | 如需继续查该 vcluster 内资源，再读 `tools/rayctl-kubectl.md` → 1. kubeconfig、3. 查询任务 |

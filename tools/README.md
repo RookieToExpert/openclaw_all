@@ -29,14 +29,14 @@ TOOLS.md
 | 文件                      | 内容                                                            | 典型使用场景                                              |
 | ----------------------- | ------------------------------------------------------------- | --------------------------------------------------- |
 | `environment-entry.md`  | 开发机、堡垒机、跳板机入口速查；复杂 SSH heredoc 通用规则                           | 入口不确定、需要登录开发机、需要复杂远程脚本                              |
-| `rayctl-kubectl.md`     | kubeconfig、rayctl、kubectl、节点、任务、PVC / PV / AFS、ECS / AIS 命令模板 | vcjob 查询、节点查询、PVC 查询、rayctl 操作                      |
+| `rayctl-kubectl.md`     | kubeconfig、rayctl、kubectl、节点、任务、PVC / PV / AFS、ECS / AIS、policy update 命令模板 | vcjob 查询、节点查询、PVC 查询、rayctl 操作                      |
 | `machine-types.md`      | 机器类型、芯片、vcluster 族、资源名、IP 段初筛映射                               | 判断 IP / vcluster / machine-type 是 MUXI、910B 还是 910C |
 | `job-templates.md`      | `rayctl job create` 任务创建模板和资源范围                               | 创建训练 / 推理任务、生成 rayctl job create 命令                 |
 | `dcluster-ansible.md`   | D 集群物理机 ansible 单 IP、JumpServer / 跳板机入口、转义规则                  | 查物理机目录、日志、mx-smi、磁盘、DNS、本地脚本                        |
 | `mccl-commands.md`      | 已纳管 MUXI 维修后宿主机 MCCL 单机测试命令和日志检查                              | 维修后单节点 MCCL 验收                                      |
 | `mccl-platform-yaml.md` | 新机器平台纳管前 MCCL YAML / vcjob / PodGroup 模板和检查命令                 | 新 MUXI 机器纳管前通过平台任务跑 MCCL                            |
 | `k8s-cleanup.md`        | Kubernetes 清理类命令模板                                            | 批量删除 Pod、vcjob TTL patch、Aborted 清理                 |
-| `hc-system-kubectl.md`  | host cluster 系统组件查询、VC 控制面定位、VC 控制面 reset、通过 prod-lepton / lepton_service 数据库调整 VC flavor 的命令模板 | 重启 VC 控制面、扩容 VC flavor、查询 HC 系统组件 |
+| `hc-system-kubectl.md`  | host cluster 系统组件查询、VC 控制面定位、VC 控制面 reset、通过 prod-lepton / lepton_service 数据库调整 VC flavor、`disallow-privileged-containers` policy 核对模板 | 重启 VC 控制面、扩容 VC flavor、更新 HC policy、查询 HC 系统组件 |
 | `fault-records.md`      | 运维故障 / 维修记录表查询                                                | Failed 任务疑似坏节点、维修记录对照                               |
 
 ---
@@ -71,6 +71,7 @@ TOOLS.md
 * `rayctl job get`
 * `rayctl job get cluster`
 * `rayctl node get / check / describe`
+* `rayctl policy update disallow-privileged-containers`
 * vcluster 内 `vcjob` / Pod / PodGroup / Event / log 查询
 * PVC / AFS / PV 查询与创建
 * ECS / AIS 查询
@@ -218,6 +219,7 @@ skills/k8s-cleanup/SKILL.md
 * 查询 HC namespace 下 VC 控制面 Pod、owner、replicas、selector。
 * 精确 delete 控制面 Pod 触发重建。
 * 通过 `prod-lepton` / `lepton_service` 数据库调整 VC flavor。
+* `disallow-privileged-containers` policy 的只读核对和人工兜底编辑参考。
 * 操作后复核。
 
 不适合：

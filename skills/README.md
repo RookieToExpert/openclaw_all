@@ -37,7 +37,7 @@ TOOLS.md
 | `cluster-inventory`      | 集群节点盘点；按 MUXI / 910B / 910C / machine-type / vcluster 统计节点                                | `tools/machine-types.md`、`tools/rayctl-kubectl.md`                                                               |
 | `k8s-cleanup`            | 批量删除 Pod / vcjob / Failed 资源；历史 vcjob TTL 回收；Aborted 未回收处理                                | `tools/k8s-cleanup.md`、必要时 `tools/rayctl-kubectl.md`                                                             |
 | `dcluster-machine-op`    | D 集群物理机目录、日志、进程、磁盘、NPU、DNS、本地脚本                                                           | `tools/dcluster-ansible.md`                                                                                      |
-| `hc-system-op`           | HC 上平台 / VC 控制面系统组件操作；重启 / 重置 VC 控制面；通过平台数据库调整 VC flavor；查询 HC 系统组件状态 | `tools/hc-system-kubectl.md`、`tools/rayctl-kubectl.md` |
+| `hc-system-op`           | HC 上平台 / VC 控制面系统组件操作；重启 / 重置 VC 控制面；通过平台数据库调整 VC flavor；更新 `disallow-privileged-containers` policy；查询 HC 系统组件状态 | `tools/hc-system-kubectl.md`、`tools/rayctl-kubectl.md` |
 | `update-openclaw-memory` | 更新 OpenClaw memory / tools / skills / 知识库                                                 | `TOOLS.md`、`AGENTS.md`、`MEMORY.md`、git 操作                                                                        |
 
 ---
@@ -216,6 +216,7 @@ tools/rayctl-kubectl.md
 * 重启 / 重置某个 VC 控制面 Pod。
 * 查询某个 VC 控制面组件状态。
 * 调整某个 VC 的 flavor。
+* 更新 `disallow-privileged-containers` policy，把某个 VC 加入例外。
 
 不处理：
 
@@ -228,6 +229,7 @@ tools/rayctl-kubectl.md
 
 * VC 内业务现象用 VC kubeconfig 验证。
 * HC 系统组件定位、delete、数据库相关操作用 HC kubeconfig。
+* HC policy 更新优先走 `rayctl policy update disallow-privileged-containers`，HC `kubectl` 只做只读核对和人工兜底。
 * 写操作前必须只读验证、展示影响范围和风险，并等待确认。
 
 ---

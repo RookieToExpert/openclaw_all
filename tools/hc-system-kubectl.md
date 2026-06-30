@@ -255,7 +255,60 @@ where not deleted
   and uid = '<VC_UID>';
 ```
 
-## 8. 操作后复核
+## 8. `disallow-privileged-containers` policy 更新模板
+
+变量：
+
+```bash
+POLICY_NAME='disallow-privileged-containers'
+VC_QUERY='<vc-name-or-uid>'
+VC_UID='<vc-uid>'
+```
+
+只读查看 policy：
+
+```bash
+kubectl --kubeconfig "$HC_KUBECONFIG" get clusterpolicies "$POLICY_NAME" -o yaml
+kubectl --kubeconfig "$HC_KUBECONFIG" get clusterpolicies "$POLICY_NAME" -o yaml | grep -F -- "$VC_UID"
+```
+
+只读查看例外区块附近内容：
+
+```bash
+kubectl --kubeconfig "$HC_KUBECONFIG" get clusterpolicies "$POLICY_NAME" -o yaml | grep -n -C 6 -F -- "$VC_UID"
+```
+
+根据当前 policy 结构，常见例外项关键内容形态为：
+
+```text
+key: vcluster.loft.sh/ns-label-vc-<VC_UID>
+operator: Exists
+```
+
+执行前必须先实时确认 live YAML 结构仍然匹配，不要只凭记忆写入。
+
+优先使用 rayctl：
+
+```bash
+# 确认后执行
+rayctl policy update disallow-privileged-containers "$VC_QUERY"
+```
+
+执行后复核：
+
+```bash
+kubectl --kubeconfig "$HC_KUBECONFIG" get clusterpolicies "$POLICY_NAME" -o yaml | grep -F -- "$VC_UID"
+kubectl --kubeconfig "$HC_KUBECONFIG" get clusterpolicies "$POLICY_NAME" -o yaml | grep -n -C 6 -F -- "$VC_UID"
+```
+
+人工兜底方式，仅展示，不自动执行：
+
+```bash
+# 仅人工兜底参考，不自动执行
+kubectl --kubeconfig "$HC_KUBECONFIG" edit clusterpolicies "$POLICY_NAME"
+```
+
+## 9. 操作后复核
 
 查新 Pod Ready：
 
