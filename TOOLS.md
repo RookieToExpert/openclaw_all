@@ -28,6 +28,9 @@ TOOLS.md 只负责路由，不负责替代 SOP。
 | 创建 / 查询 PVC、AFS、PV                                           | `skills/pvc-afs/SKILL.md`     | `tools/rayctl-kubectl.md` → 5. AFS / PVC / PV 查询；创建 PVC 时再读 6. 创建 PVC       |
 | 批量删除 Pod / vcjob / Failed 资源、历史 vcjob TTL 回收             | `skills/k8s-cleanup/SKILL.md`            | `tools/k8s-cleanup.md`                                 |
 | 查看 D 集群物理机目录 / 日志 / NPU / 磁盘 / DNS                       | `skills/dcluster-machine-op/SKILL.md`    | `tools/dcluster-ansible.md`                            |
+| 打 MUXI 镜像 / 加 driver / push 到 `registry2.d.pjlab.org.cn/ccr-ailabdev/` | `skills/image-build-push/SKILL.md` | `tools/image-build-push.md` |
+| 从下载链接 `wget` 镜像包、`docker load` 后打 MUXI driver 并 push | `skills/image-build-push/SKILL.md` | `tools/image-build-push.md` |
+| 非 MUXI 镜像重新 tag 到用户指定 ccr 并 push | `skills/image-build-push/SKILL.md` | `tools/image-build-push.md` |
 | 重启 / 重置 VC 控制面、删除 HC 下 VC 控制面 Pod 触发重建 | `skills/hc-system-op/SKILL.md` | `tools/hc-system-kubectl.md` |
 | 扩容 VC / 调整 VC flavor / 修改 VC 规格 minimum、small、medium、large、unlimit | `skills/hc-system-op/SKILL.md` | `tools/hc-system-kubectl.md` |
 | 给某个 VC 开放特权模式 / 更新 `disallow-privileged-containers` policy 例外 | `skills/hc-system-op/SKILL.md` | `tools/rayctl-kubectl.md` → policy update；`tools/hc-system-kubectl.md` → 8. `disallow-privileged-containers` policy 更新模板 |

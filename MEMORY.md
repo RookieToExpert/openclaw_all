@@ -90,6 +90,32 @@ OpenClaw 必须按 SOP 执行，不得自行扩展排障范围。
 7. 单机 MUXI MCCL 维修验收属于物理机操作，默认不创建 vcjob、不打 Kubernetes label、不先 uncordon。
 8. 只有用户明确要求“测试通过后放回 / uncordon”时，才在 MCCL 通过后切回 Kubernetes 入口。
 
+### 2.3 堡垒机内镜像制作 / 打驱动 / push 操作
+
+入口：
+
+```text
+本地 → 堡垒机 10.140.3.216:5906 → 输入 3.216 → sudo -i
+```
+
+适用对象：
+
+* `docker pull`
+* `wget` 下载镜像压缩包
+* `docker load`
+* `docker tag`
+* `docker push`
+* MUXI 镜像打云脉网卡驱动
+
+规则：
+
+1. 这类操作不走 D 集群开发机。
+2. 这类操作不走 `220.33` 跳板机 ansible 入口。
+3. MUXI 镜像默认按 SOP 打驱动；非 MUXI 镜像不自动打驱动。
+4. 非 MUXI 目标 ccr 必须由用户明确指定。
+5. `wget` 下载固定在 `/data/xie` 下执行。
+6. 临时下载链接、鉴权参数、密码不得写入知识库。
+
 ---
 
 ## 3. 写操作强制确认

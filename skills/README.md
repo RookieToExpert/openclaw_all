@@ -37,6 +37,7 @@ TOOLS.md
 | `cluster-inventory`      | 集群节点盘点；按 MUXI / 910B / 910C / machine-type / vcluster 统计节点                                | `tools/machine-types.md`、`tools/rayctl-kubectl.md`                                                               |
 | `k8s-cleanup`            | 批量删除 Pod / vcjob / Failed 资源；历史 vcjob TTL 回收；Aborted 未回收处理                                | `tools/k8s-cleanup.md`、必要时 `tools/rayctl-kubectl.md`                                                             |
 | `dcluster-machine-op`    | D 集群物理机目录、日志、进程、磁盘、NPU、DNS、本地脚本                                                           | `tools/dcluster-ansible.md`                                                                                      |
+| `image-build-push`      | 堡垒机内镜像制作 / 打标 / 打驱动 / push；MUXI 镜像加 driver；非 MUXI 镜像推送到指定 ccr | `tools/image-build-push.md`、`tools/environment-entry.md` |
 | `hc-system-op`           | HC 上平台 / VC 控制面系统组件操作；重启 / 重置 VC 控制面；通过平台数据库调整 VC flavor；更新 `disallow-privileged-containers` policy；查询 HC 系统组件状态 | `tools/hc-system-kubectl.md`、`tools/rayctl-kubectl.md` |
 | `update-openclaw-memory` | 更新 OpenClaw memory / tools / skills / 知识库                                                 | `TOOLS.md`、`AGENTS.md`、`MEMORY.md`、git 操作                                                                        |
 
@@ -204,6 +205,31 @@ tools/rayctl-kubectl.md
 ```
 
 或相关 Kubernetes skill。
+
+---
+
+### `image-build-push`
+
+用于堡垒机内镜像制作和推送。
+
+典型问题：
+
+* MUXI 镜像 `docker pull` 后重新 tag、打驱动、push。
+* `wget` 镜像包后 `docker load`、打驱动、push。
+* 非 MUXI 镜像 tag 到用户指定 ccr 并 push。
+
+不处理：
+
+* Kubernetes / vcluster / rayctl / kubectl 查询与写操作。
+* 物理机 ansible 单 IP 查询。
+* HC 控制面重置、VC flavor、HC policy 更新。
+
+必须遵守：
+
+* 走堡垒机内 `3.216` 入口。
+* MUXI 和非 MUXI 路径必须先区分。
+* 非 MUXI 目标 ccr 必须由用户明确指定。
+* `wget` 固定在 `/data/xie` 下执行。
 
 ---
 

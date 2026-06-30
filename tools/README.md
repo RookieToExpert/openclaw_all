@@ -33,6 +33,7 @@ TOOLS.md
 | `machine-types.md`      | 机器类型、芯片、vcluster 族、资源名、IP 段初筛映射                               | 判断 IP / vcluster / machine-type 是 MUXI、910B 还是 910C |
 | `job-templates.md`      | `rayctl job create` 任务创建模板和资源范围                               | 创建训练 / 推理任务、生成 rayctl job create 命令                 |
 | `dcluster-ansible.md`   | D 集群物理机 ansible 单 IP、JumpServer / 跳板机入口、转义规则                  | 查物理机目录、日志、mx-smi、磁盘、DNS、本地脚本                        |
+| `image-build-push.md`   | 堡垒机内 `3.216` 入口下的镜像拉取、下载、load、tag、打驱动、push 命令模板 | 打 MUXI 镜像、加 driver、push；非 MUXI 镜像推送 |
 | `mccl-commands.md`      | 已纳管 MUXI 维修后宿主机 MCCL 单机测试命令和日志检查                              | 维修后单节点 MCCL 验收                                      |
 | `mccl-platform-yaml.md` | 新机器平台纳管前 MCCL YAML / vcjob / PodGroup 模板和检查命令                 | 新 MUXI 机器纳管前通过平台任务跑 MCCL                            |
 | `k8s-cleanup.md`        | Kubernetes 清理类命令模板                                            | 批量删除 Pod、vcjob TTL patch、Aborted 清理                 |
@@ -180,6 +181,34 @@ TOOLS.md
 * Kubernetes Node 查询。
 * vcjob / Pod / PVC 查询。
 * rayctl 操作。
+
+---
+
+### `image-build-push.md`
+
+保存堡垒机内镜像制作 / 打驱动 / push 命令模板。
+
+适合：
+
+* 进入 `3.216` 入口。
+* `docker pull`
+* `wget` 下载镜像包
+* `docker load`
+* `docker tag`
+* `docker push`
+* MUXI 镜像打云脉网卡驱动
+
+不适合：
+
+* 镜像制作流程判断。
+* 是否属于 MUXI 的判断。
+* 非 MUXI 目标 ccr 的决策。
+
+这些流程判断放在：
+
+```text
+skills/image-build-push/SKILL.md
+```
 
 ---
 

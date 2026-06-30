@@ -116,11 +116,60 @@ ansible all -i '<目标IP>,' -m shell -a '<命令>'
 
 ---
 
-## 3. 入口选择规则
+## 3. 堡垒机内镜像制作 / 打驱动 / push 入口
+
+统一入口：
+
+```text
+本地 → 堡垒机 → 堡垒机内输入 3.216 → sudo -i
+```
+
+登录堡垒机：
+
+```bash
+ssh -p 5906 test6@10.140.3.216
+```
+
+进入镜像操作入口：
+
+```text
+3.216
+```
+
+进入 root：
+
+```bash
+sudo -i
+```
+
+镜像操作命令模板见：
+
+```text
+tools/image-build-push.md
+```
+
+适用场景：
+
+* `docker pull`
+* `wget` 下载镜像压缩包
+* `docker load`
+* `docker tag`
+* `docker push`
+* MUXI 镜像打云脉网卡驱动
+
+禁止：
+
+* 不要把镜像制作发到开发机。
+* 不要把镜像制作发到 `220.33` 跳板机 ansible 入口。
+* 不要在未确认镜像类型和目标仓库前直接 push。
+
+---
+
+## 4. 入口选择规则
 
 先判断对象类型，再选入口。
 
-### 3.1 走 Kubernetes / vcluster 入口
+### 4.1 走 Kubernetes / vcluster 入口
 
 用户问题涉及以下对象时，走 D 集群开发机：
 
@@ -150,7 +199,7 @@ rayctl ecs
 本地 → D 集群开发机 → rayctl 优先 → kubectl 兜底
 ```
 
-### 3.2 走物理机器入口
+### 4.2 走物理机器入口
 
 用户问题涉及以下对象时，走堡垒机 / 跳板机 / ansible 单 IP：
 
@@ -179,17 +228,40 @@ mccl.sh
 本地 → 堡垒机 → 跳板机 → sensetime 用户 → ansible 单 IP
 ```
 
-### 3.3 不要混用入口
+### 4.3 走镜像制作入口
+
+用户问题涉及以下对象时，走堡垒机内 `3.216` 入口：
+
+```text
+docker pull
+docker load
+docker tag
+docker push
+wget 镜像包
+打驱动
+mcr-xsc-providers
+镜像制作
+镜像推送
+```
+
+入口：
+
+```text
+本地 → 堡垒机 → 堡垒机内输入 3.216 → sudo -i
+```
+
+### 4.4 不要混用入口
 
 * 查 Pod / vcjob / PVC：不要走 ansible。
 * 查物理机目录 / mx-smi / 本地日志：不要走开发机 rayctl。
+* 做镜像制作 / pull / load / tag / push：不要走开发机，也不要走 `220.33` ansible。
 * `rayctl node check` 是 Kubernetes / 平台视角。
 * `ansible all -i '<IP>,' -m shell -a 'mx-smi'` 是物理机 OS 视角。
 * 需要从一个入口切换到另一个入口时，必须说明原因。
 
 ---
 
-## 4. 复杂远程命令用 heredoc
+## 5. 复杂远程命令用 heredoc
 
 通过 SSH 到开发机执行复杂命令时，禁止生成超长单行命令。
 
@@ -237,7 +309,7 @@ REMOTE
 
 ---
 
-## 5. 只读和写操作
+## 6. 只读和写操作
 
 只读操作可以直接执行，但必须走正确入口。
 
@@ -276,7 +348,7 @@ ansible all -i '<IP>,' -m shell -a 'sudo bash ...'
 
 ---
 
-## 6. 失败处理
+## 7. 失败处理
 
 ### 6.1 开发机登录失败
 
@@ -335,6 +407,5 @@ skills/k8s-cleanup/SKILL.md
 MEMORY.md
 memory/YYYY-MM-DD.md
 ```
-
 
 
