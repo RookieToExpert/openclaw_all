@@ -34,12 +34,10 @@ TOOLS.md
 | `pvc-afs`                | AFS / PVC / PV 查询与创建；PVC Pending；任务挂载 PVC 失败                                              | `tools/rayctl-kubectl.md`                                                                                        |
 | `job-create`             | 创建训练 / 推理任务；生成 `rayctl job create` 命令；重跑任务                                                | `tools/job-templates.md`、`tools/rayctl-kubectl.md`；需要 PVC 时读 `skills/pvc-afs/SKILL.md`                           |
 | `mccl-test`              | 已纳管 MUXI 维修后 MCCL 验收；MCCL 通过后放回；新机器平台纳管前 MCCL 验收                                          | `tools/dcluster-ansible.md`、`tools/mccl-commands.md`、`tools/mccl-platform-yaml.md`、必要时 `tools/rayctl-kubectl.md` |
-| `cluster-inventory`      | 集群节点盘点；按 MUXI / 910B / 910C / machine-type / vcluster 统计节点                                | `tools/machine-types.md`、`tools/rayctl-kubectl.md`                                                               |
 | `k8s-cleanup`            | 批量删除 Pod / vcjob / Failed 资源；历史 vcjob TTL 回收；Aborted 未回收处理                                | `tools/k8s-cleanup.md`、必要时 `tools/rayctl-kubectl.md`                                                             |
-| `dcluster-machine-op`    | D 集群物理机目录、日志、进程、磁盘、NPU、DNS、本地脚本                                                           | `tools/dcluster-ansible.md`                                                                                      |
+| `dcluster-machine-op`    | D 集群物理机目录、日志、进程、磁盘、NPU、DNS、宿主机训练网互通、本地脚本                                            | `tools/dcluster-ansible.md`；必要时读 `tools/rayctl-kubectl.md` 找候选宿主机                                             |
 | `image-build-push`      | 堡垒机内镜像制作 / 打标 / 打驱动 / push；MUXI 镜像加 driver；非 MUXI 镜像推送到指定 ccr | `tools/image-build-push.md`、`tools/environment-entry.md` |
 | `hc-system-op`           | HC 上平台 / VC 控制面系统组件操作；重启 / 重置 VC 控制面；通过平台数据库调整 VC flavor；更新 `disallow-privileged-containers` policy；查询 HC 系统组件状态 | `tools/hc-system-kubectl.md`、`tools/rayctl-kubectl.md` |
-| `update-openclaw-memory` | 更新 OpenClaw memory / tools / skills / 知识库                                                 | `TOOLS.md`、`AGENTS.md`、`MEMORY.md`、git 操作                                                                        |
 
 ---
 
@@ -134,29 +132,6 @@ skills/vcjob-debug/SKILL.md
 
 ---
 
-### `cluster-inventory`
-
-用于集群资源盘点和机器类型统计。
-
-典型问题：
-
-* 集群有多少台 MUXI。
-* 某个 IP 是什么类型机器。
-* 910B / 910C / MUXI 节点怎么分布。
-* 某个 vcluster 属于什么芯片类型。
-* 某个 machine-type 对应什么硬件。
-* 按 vcluster / machine-type / 芯片统计节点数。
-
-简单映射查询可以直接读：
-
-```text
-tools/machine-types.md
-```
-
-需要实时统计时才进入本 skill。
-
----
-
 ### `k8s-cleanup`
 
 用于 Kubernetes 批量清理和历史资源回收。
@@ -189,6 +164,7 @@ tools/machine-types.md
 * 查看日志。
 * 查看 `mx-smi`。
 * 查看磁盘、内存、进程、网卡、DNS。
+* 检查两台宿主机训练网 / 数据网 IP 是否互通。
 * 执行本地脚本。
 
 不处理：
@@ -255,31 +231,8 @@ tools/rayctl-kubectl.md
 
 * VC 内业务现象用 VC kubeconfig 验证。
 * HC 系统组件定位、delete、数据库相关操作用 HC kubeconfig。
-* HC policy 更新优先走 `rayctl policy update disallow-privileged-containers`，HC `kubectl` 只做只读核对和人工兜底。
+* HC policy 查询优先走 `rayctl policy get disallow-privileged-containers`，更新优先走 `rayctl policy update disallow-privileged-containers`，HC `kubectl` 只做只读兜底和人工兜底。
 * 写操作前必须只读验证、展示影响范围和风险，并等待确认。
-
----
-
-### `update-openclaw-memory`
-
-用于维护 OpenClaw 知识库文件。
-
-典型触发：
-
-* 更新 OpenClaw memory。
-* 同步 OpenClaw 配置。
-* 更新 tools / skills。
-* git pull openclaw_all。
-* 整理新的 SOP。
-
-更新原则：
-
-* 先判断内容类型。
-* 流程进 skills。
-* 命令进 tools。
-* 路由进 TOOLS.md。
-* 长期安全红线才进 MEMORY.md。
-* 一次性状态进 memory/YYYY-MM-DD.md。
 
 ---
 

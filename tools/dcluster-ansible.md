@@ -86,6 +86,52 @@ ansible all -i '<目标IP>,' -m shell -a 'ps -ef | head -50'
 ansible all -i '<目标IP>,' -m shell -a 'tail -n 100 <log-path>'
 ```
 
+### 3.1 宿主机训练网 / 数据网只读互通检查模板
+
+以下命令都必须在跳板机 sensetime 用户下执行。
+
+查询目标机器的全局 IPv4 网卡，过滤 Kubernetes 虚拟地址噪音：
+
+```bash
+ansible all -i '<目标IP>,' -m shell -a "ip -br -4 addr scope global | grep -v '^kube-ipvs0'"
+```
+
+按常见训练网 / 数据网接口名缩小候选范围：
+
+```bash
+ansible all -i '<目标IP>,' -m shell -a "ip -br -4 addr scope global | egrep '^(eth|bond|data)' | grep -v '^kube-ipvs0'"
+```
+
+从源机器指定源 IP ping 目标同网段 IP：
+
+```bash
+ansible all -i '<源机器管理IP>,' -m shell -a "ping -I '<源训练网IP>' -c 3 -W 1 '<目标训练网IP>'"
+```
+
+双向验证时，在目标机器反向执行：
+
+```bash
+ansible all -i '<目标机器管理IP>,' -m shell -a "ping -I '<目标训练网IP>' -c 3 -W 1 '<源训练网IP>'"
+```
+
+结果记录格式：
+
+```text
+源机器管理 IP:
+目标机器管理 IP:
+源训练网 IP:
+目标训练网 IP:
+方向:
+丢包率:
+结论:
+```
+
+只读边界：
+
+* `ip -br addr`、`ip route`、`ping` 属于只读检查。
+* 不修改网卡、路由、iptables、服务或系统配置。
+* 不自动扩大到更多机器；扩大范围前先说明节点范围和原因。
+
 ---
 
 ## 4. 单机命令转义规则

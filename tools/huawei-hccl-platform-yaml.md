@@ -1,6 +1,6 @@
 # Huawei 910C HCCL 平台任务工具
 
-本文件用于 Huawei Ascend 910C 通过平台任务 / YAML / vcjob / PodGroup 运行 HCCL allreduce / alltoall 压测。
+本文件用于 Huawei Ascend 910C 通过平台任务 / YAML / vcjob / PodGroup 运行 HCCL allreduce / allgather / alltoall 压测。
 
 对应 skill：
 
@@ -11,8 +11,8 @@ skills/mccl-test/SKILL.md → 场景 C：Huawei 910C HCCL 平台任务压测
 适用：
 
 * Huawei 910C 新机器纳管前 HCCL 压测。
-* Huawei 910C SuperPod HCCL allreduce / alltoall。
-* Huawei 910C 指定节点 HCCL allreduce / alltoall。
+* Huawei 910C SuperPod HCCL allreduce / allgather / alltoall。
+* Huawei 910C 指定节点 HCCL allreduce / allgather / alltoall。
 * Huawei 910C HCCL 二分法排坏节点时的 YAML 生成和字段同步。
 * HCCL 平台任务创建后 Pod / PodGroup / Event / master log 检查。
 * Pod Running 后进入 master 手动补跑。
@@ -113,10 +113,36 @@ TOTAL_NPUS=$((NODE_COUNT * 16))
 
 ## 3. 测试方法
 
+优先使用用户指定镜像内实际存在的 CANN / HCCL Test 路径。若镜像同时有多个 CANN 版本，先在 master pod 内只读确认：
+
+```bash
+ls -d /usr/local/Ascend/cann-* /usr/local/Ascend/ascend-toolkit/* 2>/dev/null
+find /usr/local/Ascend -path '*/tools/hccl_test/bin/*_test' -maxdepth 8 2>/dev/null
+```
+
+已验证过的 CANN 8.5.2 镜像路径：
+
+```bash
+CANN_ENV=/usr/local/Ascend/cann-8.5.2/set_env.sh
+HCCL_TEST_DIR=/usr/local/Ascend/cann-8.5.2/tools/hccl_test/bin
+
+ALL_REDUCE_TEST=$HCCL_TEST_DIR/all_reduce_test
+ALL_GATHER_TEST=$HCCL_TEST_DIR/all_gather_test
+ALLTOALL_TEST=$HCCL_TEST_DIR/alltoall_test
+```
+
+旧模板默认路径如下，仅在镜像确实使用 ascend-toolkit 8.1.RC1 时使用：
+
 allreduce：
 
 ```bash
 TEST_BIN=/usr/local/Ascend/ascend-toolkit/8.1.RC1/tools/hccl_test/bin/all_reduce_test
+```
+
+allgather：
+
+```bash
+TEST_BIN=/usr/local/Ascend/ascend-toolkit/8.1.RC1/tools/hccl_test/bin/all_gather_test
 ```
 
 alltoall：
@@ -125,7 +151,7 @@ alltoall：
 TEST_BIN=/usr/local/Ascend/ascend-toolkit/8.1.RC1/tools/hccl_test/bin/alltoall_test
 ```
 
-数据范围：
+历史默认数据范围：
 
 ```bash
 -b 1G -e 16G -f 2
@@ -195,7 +221,7 @@ Huawei 910C HCCL 测试范围不在工具文件中固定。
 固定节点 IP 列表
 SuperPod ID
 节点数量
-测试方法 allreduce / alltoall
+测试方法 allreduce / allgather / alltoall
 完整测试矩阵
 二分法当前轮次节点集合
 ```
@@ -208,7 +234,7 @@ SuperPod ID
 * 固定写死 SuperPod 4 / SuperPod 8。
 * 默认生成完整测试矩阵。
 * 自动扩大用户指定的节点范围。
-* 用户只要求一组测试时，不要自动扩展成 allreduce + alltoall。
+* 用户只要求一组测试时，不要自动扩展成 allreduce + allgather + alltoall。
 * 用户只要求一个 SuperPod 时，不要自动扩展到其他 SuperPod。
 
 ---
@@ -232,20 +258,20 @@ YAML="/tmp/hccltest-910c-r${ROUND}-${NODE_COUNT}n-${TEST_KIND}.yaml"
 其中：
 
 ```text
-TEST_KIND = allreduce 或 alltoall
+TEST_KIND = allreduce、allgather 或 alltoall
 ROUND = 二分法轮次，例如 1、2、3
 ```
 
 `generateName` 建议：
 
 ```text
-hccltest-910c-<节点数>n-<allreduce|alltoall>-
+hccltest-910c-<节点数>n-<allreduce|allgather|alltoall>-
 ```
 
 二分法建议：
 
 ```text
-hccltest-910c-r<轮次>-<节点数>n-<allreduce|alltoall>-
+hccltest-910c-r<轮次>-<节点数>n-<allreduce|allgather|alltoall>-
 ```
 
 示例：
@@ -762,7 +788,7 @@ GENERATE_NAME="hccltest-910c-r${ROUND}-${NODE_COUNT}n-${TEST_KIND}-"
 
 ---
 
-## 10. allreduce / alltoall 切换
+## 10. allreduce / allgather / alltoall 切换
 
 allreduce 使用：
 
@@ -770,10 +796,22 @@ allreduce 使用：
 TEST_BIN=/usr/local/Ascend/ascend-toolkit/8.1.RC1/tools/hccl_test/bin/all_reduce_test
 ```
 
+allgather 使用：
+
+```bash
+TEST_BIN=/usr/local/Ascend/ascend-toolkit/8.1.RC1/tools/hccl_test/bin/all_gather_test
+```
+
 alltoall 使用：
 
 ```bash
 TEST_BIN=/usr/local/Ascend/ascend-toolkit/8.1.RC1/tools/hccl_test/bin/alltoall_test
+```
+
+如果镜像使用 CANN 8.5.2，把上面的前缀替换为：
+
+```bash
+/usr/local/Ascend/cann-8.5.2/tools/hccl_test/bin/
 ```
 
 修改测试方法时，只改 master `/root/hccl.sh` 内的 `TEST_BIN`。
@@ -910,7 +948,7 @@ minAvailable = 节点数
 master replicas = 1
 worker replicas = 节点数 - 1
 image 正确
-TEST_BIN 对应 allreduce / alltoall
+TEST_BIN 对应 allreduce / allgather / alltoall
 HYDRA_LAUNCHER_EXTRA_ARGS 使用 -p 2222
 master 和 worker 都启动 sshd -p 2222
 master 和 worker 的 nodeSelector / affinity 一致
@@ -1080,6 +1118,48 @@ $MPI_BIN -f /root/hostfile -n "$TOTAL_NPUS" \
   -c 1
 ```
 
+已验证过的 910C SuperPod allgather / alltoall 审计矩阵常用数据范围：
+
+```bash
+-b 512M -e 4G -f 2
+```
+
+对应：
+
+```text
+512M, 1G, 2G, 4G
+```
+
+allgather 零拷贝：
+
+```bash
+# 关闭零拷贝
+all_gather_test ... -z 0
+
+# 开启零拷贝
+all_gather_test ... -z 1
+```
+
+alltoall 不做零拷贝开 / 关对比，不加 `-z`。
+
+指定 Device 执行 HCCL Test：
+
+```bash
+# 单卡 / 单 die 场景示例：每台固定使用 Device 4
+export HCCL_TEST_USE_DEVS="4"
+
+# 多卡示例：只允许使用 4/5/6/7 号卡
+export HCCL_TEST_USE_DEVS="4,5,6,7"
+```
+
+每机只用 1 卡时：
+
+```text
+hostfile 每个节点写 :1
+mpirun -n <节点数>
+HCCL test 参数使用 -p 1
+```
+
 手动补跑 alltoall：
 
 ```bash
@@ -1108,7 +1188,7 @@ $MPI_BIN -f /root/hostfile -n "$TOTAL_NPUS" \
 ```text
 /root/hostfile 行数 = 当前测试节点数
 TOTAL_NPUS = 当前测试节点数 × 16
-TEST_BIN 对应 allreduce / alltoall
+TEST_BIN 对应 allreduce / allgather / alltoall
 HYDRA_LAUNCHER_EXTRA_ARGS 使用 -p 2222
 ```
 
@@ -1161,6 +1241,138 @@ TEST_BIN=/usr/local/Ascend/ascend-toolkit/8.1.RC1/tools/hccl_test/bin/alltoall_t
 ```
 
 ---
+
+## 18.1 CANN 8.5.2 手动补跑与审计留存模板
+
+适用于已有 910C HCCL 任务 Pod 全部 Running 后，在 master pod 内补跑 allgather / alltoall 矩阵并保留审计文件。
+
+公共变量：
+
+```bash
+AUDIT_DIR="/tmp/hccl_<test>_<matrix>_$(date +%Y%m%d_%H%M%S)"
+mkdir -p "$AUDIT_DIR"/{scripts,hostfiles,logs}
+
+MPI_BIN=/usr/local/mpich-3.2.1/bin/mpirun
+ENV_WRAPPER=/tmp/mpi_env_cann852.sh
+HCCL_TEST_DIR=/usr/local/Ascend/cann-8.5.2/tools/hccl_test/bin
+
+export HYDRA_LAUNCHER_EXTRA_ARGS="-p 2222 -o StrictHostKeyChecking=no"
+```
+
+审计目录必须至少保留：
+
+```text
+scripts/       启动脚本
+hostfiles/     每个场景实际使用的 hostfile
+logs/          每个场景原始日志
+summary.tsv    场景、节点数、每节点卡数、总卡数、Device、rc、日志路径
+*_results.md   汇总结果，按用户要求保留两位小数
+*_results.tsv  汇总结果原始表格
+```
+
+allgather full16 模板：
+
+```bash
+TEST_BIN=$HCCL_TEST_DIR/all_gather_test
+
+NODE_COUNT=$(wc -l < "$HOSTFILE")
+NPUS_PER_NODE=$(awk -F: 'NR==1{print $2}' "$HOSTFILE")
+TOTAL_NPUS=$(awk -F: '{s+=$2} END{print s}' "$HOSTFILE")
+
+# ZERO_COPY=0 表示关闭零拷贝；ZERO_COPY=1 表示开启零拷贝
+ZERO_COPY=0
+
+$MPI_BIN -f "$HOSTFILE" -n "$TOTAL_NPUS" \
+  "$ENV_WRAPPER" "$TEST_BIN" \
+  -p "$NPUS_PER_NODE" \
+  -b 512M \
+  -e 4G \
+  -f 2 \
+  -w 5 \
+  -n 20 \
+  -c 1 \
+  -z "$ZERO_COPY"
+```
+
+allgather 已验证场景命名建议：
+
+```text
+pod4_pod8_32n_full16
+pod4_16n_full16
+pod8_16n_full16
+pod4_2n_full16
+pod8_2n_full16
+pod4_1n_full16
+pod8_1n_full16
+```
+
+alltoall full16 模板：
+
+```bash
+TEST_BIN=$HCCL_TEST_DIR/alltoall_test
+
+NODE_COUNT=$(wc -l < "$HOSTFILE")
+NPUS_PER_NODE=$(awk -F: 'NR==1{print $2}' "$HOSTFILE")
+TOTAL_NPUS=$(awk -F: '{s+=$2} END{print s}' "$HOSTFILE")
+
+$MPI_BIN -f "$HOSTFILE" -n "$TOTAL_NPUS" \
+  "$ENV_WRAPPER" "$TEST_BIN" \
+  -p "$NPUS_PER_NODE" \
+  -b 512M \
+  -e 4G \
+  -f 2 \
+  -w 5 \
+  -n 20 \
+  -c 1
+```
+
+alltoall 每机 1 卡 / 1 die 模板：
+
+```bash
+TEST_BIN=$HCCL_TEST_DIR/alltoall_test
+DEVICE_ID=4
+export HCCL_TEST_USE_DEVS="$DEVICE_ID"
+
+# hostfile 每个节点只写 1 个 slot
+cat > "$HOSTFILE" <<'EOF'
+<pod-ip-1>:1
+<pod-ip-2>:1
+<pod-ip-3>:1
+<pod-ip-4>:1
+EOF
+
+TOTAL_NPUS=$(awk -F: '{s+=$2} END{print s}' "$HOSTFILE")
+
+HCCL_TEST_USE_DEVS="$DEVICE_ID" \
+$MPI_BIN -f "$HOSTFILE" -n "$TOTAL_NPUS" \
+  "$ENV_WRAPPER" "$TEST_BIN" \
+  -p 1 \
+  -b 512M \
+  -e 4G \
+  -f 2 \
+  -w 5 \
+  -n 20 \
+  -c 1
+```
+
+alltoall 每机 1 卡已验证场景：
+
+```text
+pod4_4n_1card_dev4
+pod8_4n_1card_dev4
+pod4_8n_1card_dev4
+pod8_8n_1card_dev4
+pod4_16n_1card_dev4
+pod8_16n_1card_dev4
+```
+
+注意：
+
+* alltoall 不加 `-z`。
+* allgather 必须显式写明 `-z 0` 或 `-z 1`。
+* 每机 1 卡场景必须同时满足 hostfile `:1`、`mpirun -n <节点数>`、HCCL Test `-p 1`。
+* `HCCL_TEST_USE_DEVS` 应在 `mpirun` 前导出，并可在命令前再加一次，确保远端进程继承。
+* 如果 master pod 无法通过 pod 名解析自身，需要在所有 Pod 的 `/etc/hosts` 中补 master pod name 到 pod IP 的映射；这是临时补跑可用的容器内操作，不应写入 YAML 模板默认行为。
 
 ## 19. 二分法 YAML 字段同步规则
 

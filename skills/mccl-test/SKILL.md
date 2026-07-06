@@ -11,8 +11,8 @@
 * 新 MUXI 机器平台纳管前 MCCL 验收。
 * 通过 YAML / vcjob / PodGroup 起多机 MCCL 任务。
 * Huawei 910C 新机器平台纳管前 HCCL 压测。
-* Huawei 910C SuperPod HCCL allreduce / alltoall 压测。
-* Huawei 910C 指定节点 HCCL allreduce / alltoall 压测。
+* Huawei 910C SuperPod HCCL allreduce / allgather / alltoall 压测。
+* Huawei 910C 指定节点 HCCL allreduce / allgather / alltoall 压测。
 * Huawei 910C HCCL 二分法排坏节点。
 * `Avg bus bandwidth`、`alg_bandwidth`、`Out of bounds`、`check_result`、MCCL / HCCL timeout / failed / hang。
 
@@ -278,11 +278,13 @@ tools/rayctl-kubectl.md → 节点查询、任务查询、Pod / PodGroup / Event
 vcluster / kubeconfig。
 namespace。
 节点数。
-测试方法：allreduce 或 alltoall。
+测试方法：allreduce、allgather 或 alltoall。
 调度方式：SuperPod 或指定节点。
 SuperPod ID，或指定节点 IP 列表。
 image。
 CANN / HCCL test 路径。
+是否使用零拷贝，仅 allgather 需要确认开 / 关。
+是否指定 Device 执行，仅单卡 / 单 die 场景需要确认 Device ID。
 generateName。
 是否创建任务。
 是否清理旧任务。
@@ -300,8 +302,11 @@ Huawei 910C HCCL 测试范围由用户当次指定，不在 SOP 中固定。
 SuperPod X
 某个节点集合
 单组 allreduce
+单组 allgather
 单组 alltoall
-allreduce + alltoall
+allreduce + allgather + alltoall
+allgather 零拷贝开 / 关对比
+alltoall 每机 1 卡 / 1 die 场景
 完整测试矩阵
 二分法排坏节点
 
@@ -329,6 +334,38 @@ allreduce + alltoall
 如果日志无结果但 Pod 都 Running，可以进入 master 手动补跑。
 如果用户要求二分法排坏节点，进入 4.8。
 清理任务前必须再次确认。
+
+4.5.1 已验证的 910C HCCL 测试矩阵约定
+
+以下矩阵是已在 910C SuperPod4 / SuperPod8 上验证过的补跑方式。只有用户明确要求相同矩阵时才复用，不得默认扩大测试范围。
+
+allgather：
+
+* 使用 `all_gather_test`。
+* 数据量可按用户要求使用 `512M, 1G, 2G, 4G`，对应 `-b 512M -e 4G -f 2`。
+* 需要分别测试零拷贝关闭和开启：
+  * 关闭：`-z 0`。
+  * 开启：`-z 1`。
+* 已验证场景命名和命令模板只维护在 `tools/huawei-hccl-platform-yaml.md`。
+
+alltoall：
+
+* 使用 `alltoall_test`。
+* alltoall 不做零拷贝开 / 关对比，不加 `-z`。
+* full16 场景：1 机 / 2 机可按 SuperPod 内 16 台全覆盖测试，并输出平均值。
+* 每机 1 卡 / 1 die 场景：4 机 / 8 机 / 16 机使用 hostfile 每行 `:1`、`mpirun -n <节点数>`、`-p 1`。
+* 指定单卡时使用 `HCCL_TEST_USE_DEVS="<device-id>"`，例如 `HCCL_TEST_USE_DEVS="4"`。
+* 已验证场景命名和命令模板只维护在 `tools/huawei-hccl-platform-yaml.md`。
+
+审计留存：
+
+* 用户要求审计时，脚本、hostfile、summary、原始日志和结果表必须保存到 master pod 的 `/tmp/hccl_<test>_<matrix>_<timestamp>/`。
+* 建议目录内至少包含：
+  * `scripts/`：启动脚本。
+  * `hostfiles/`：每个场景使用的 hostfile。
+  * `logs/`：每个场景原始日志。
+  * `summary.tsv`：场景、节点数、卡数、Device、rc、日志路径。
+  * `*_results.md` / `*_results.tsv`：保留两位小数的结果汇总。
 4.6 创建前预览
 
 创建前必须展示：
@@ -348,6 +385,9 @@ worker replicas
 mpirun 总卡数
 TEST_BIN
 HYDRA_LAUNCHER_EXTRA_ARGS
+零拷贝参数，仅 allgather 展示 `-z 0` 或 `-z 1`
+指定 Device，仅单卡 / 单 die 场景展示 `HCCL_TEST_USE_DEVS`
+审计目录和脚本路径，如果是手动补跑
 
 发现以下任意问题必须停止：
 
@@ -355,6 +395,9 @@ master 和 worker 调度规则不一致。
 SuperPod 和指定节点调度同时存在。
 节点数相关字段不一致。
 Hydra 端口不是 2222。
+alltoall 命令带了零拷贝 `-z` 参数。
+allgather 零拷贝场景没有明确 `-z 0` 或 `-z 1`。
+每机 1 卡 / 1 die 场景中 hostfile 不是每节点 `:1`，或 `-p` 不是 `1`。
 YAML 关键字段和用户要求不一致。
 用户未确认写操作。
 4.7 结果判断

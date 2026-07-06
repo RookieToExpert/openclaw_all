@@ -19,6 +19,7 @@
 * 禁止用 host cluster kubeconfig 查询 vcluster 内 `vcjob` / `PodGroup` / Pod。
 * 写操作必须遵守 `MEMORY.md` 的写操作确认规则。
 * 用户输入必须放入变量并加引号；grep 使用 `grep -F -- "$VAR"`。
+* bearer token 属于敏感信息，不得写入知识库、命令模板、日志、聊天记录或 shell history；只允许通过临时环境变量在当前会话中使用，用完立即 unset。
 
 ---
 
@@ -83,8 +84,14 @@ rayctl node uncordon <node-name>
 rayctl job get <job-name-or-pod-name-or-uid> [...]
 rayctl job get cluster [-A|<vc-name>] [pending]
 rayctl job create <template>
+rayctl vc get [vc-name-or-uid]
+rayctl policy get disallow-privileged-containers [vc-name-or-uid]
 rayctl policy update disallow-privileged-containers <vc-name-or-uid>
 rayctl user get <username-or-userid> [--jobs]
+rayctl auth user <username-or-userid>
+rayctl auth afs <afs-name>
+rayctl auth groups <group-name-or-id>
+rayctl rbac get <vc-name-or-uid> [-l <label-selector>]
 rayctl afs check <afs-name-or-uid> [...]
 rayctl pvc check <pvc-name> [...]
 rayctl pvc create
@@ -118,15 +125,21 @@ export KUBECONFIG=/root/D/<实际 kubeconfig 文件名>
 rayctl -k /root/D/<实际 kubeconfig 文件名> job get <job-name-or-pod-name-or-uid>
 ```
 
-policy 更新：
+policy 只读查询与更新：
 
 ```bash
 export KUBECONFIG=/root/kubeconfig
 
 VC_QUERY='<vc-name-or-uid>'
 
+rayctl policy get disallow-privileged-containers "$VC_QUERY"
 rayctl policy update disallow-privileged-containers "$VC_QUERY"
 ```
+
+注意：
+
+* `rayctl policy get` 是只读查询。
+* `rayctl policy update` 是写操作，执行前必须确认。
 
 ---
 
@@ -675,7 +688,51 @@ kubectl uncordon "$NODE"
 
 ---
 
-### 4.2 vcluster 与 host namespace 映射查询
+### 4.2 平台 VC 信息查询
+
+用于列出 VC 或查询单个 VC 详情。
+
+查询单个 VC：
+
+```bash
+export KUBECONFIG=/root/kubeconfig
+
+VC='<vc-name-or-uid>'
+
+rayctl vc get "$VC"
+```
+
+列出 VC：
+
+```bash
+export KUBECONFIG=/root/kubeconfig
+
+rayctl vc get
+```
+
+输出关注：
+
+* VC 名称或显示名。
+* VC UID。
+* 与 HC / 控制面 / namespace 映射相关的信息。
+* 是否能唯一定位目标 VC。
+
+适用场景：
+
+* 查询 VC 基础信息。
+* 查询或核对 VC UID。
+* policy 更新前确认目标 VC 是否唯一。
+
+边界：
+
+* 这是 host cluster / 平台侧只读查询。
+* 无参 `rayctl vc get` 可能列出全部 VC，只有用户明确要求列表、概览或全量时才执行。
+* 它不替代 vcluster kubeconfig 下的业务资源查询。
+* 需要查 vcjob / Pod / PodGroup / PVC / Event 时，仍回到对应 vcluster kubeconfig 和原有模板。
+
+---
+
+### 4.3 vcluster 与 host namespace 映射查询
 
 用于查看某个 vcluster 在 host cluster 中的控制面 namespace，以及逻辑 namespace 到 host resource namespace 的映射关系。
 
@@ -716,7 +773,7 @@ rayctl cluster get vc-019d28e0-9610-74ef-a722-9242dede9e37
 
 ---
 
-### 4.3 平台用户查询
+### 4.4 平台用户查询
 
 用于根据 username 或 userid 查询平台用户信息。
 
@@ -761,6 +818,114 @@ rayctl user get zhangjinouwen --jobs
 * `--jobs` 只查询当前租户下的活跃任务，不等价于全平台历史任务检索。
 * 需要继续排障具体任务时，再回到 3. 查询任务。
 * 用户名、用户 ID 必须明确；缺少关键标识时停止，不要扩大范围扫描。
+
+---
+
+### 4.5 平台授权与 RBAC 查询
+
+用于查询平台资源授权关系：
+
+* `rayctl auth afs`：查看 AFS 归属的用户 / 用户组授权。
+* `rayctl auth user`：查看某个用户所属组和权限。
+* `rayctl auth groups`：查看某个用户组信息和权限。
+* `rayctl rbac get`：查看某个 VC 集群维度的 ClusterRoleBinding。
+
+查询用户权限：
+
+```bash
+export KUBECONFIG=/root/kubeconfig
+
+USER_QUERY='<username-or-userid>'
+
+rayctl auth user "$USER_QUERY"
+```
+
+查询 AFS 归属授权：
+
+```bash
+export KUBECONFIG=/root/kubeconfig
+
+AFS='<afs-name>'
+
+rayctl auth afs "$AFS"
+```
+
+查询用户组权限：
+
+```bash
+export KUBECONFIG=/root/kubeconfig
+
+GROUP_QUERY='<group-name-or-id>'
+
+rayctl auth groups "$GROUP_QUERY"
+```
+
+`groups` 也支持别名 `group`：
+
+```bash
+rayctl auth group "$GROUP_QUERY"
+```
+
+查询 VC 集群维度 RBAC：
+
+```bash
+export KUBECONFIG=/root/kubeconfig
+
+VC='<vc-name-or-uid>'
+
+# 在交互 shell 中输入 token，不要把 token 写进命令历史或文档。
+printf 'Bearer token: '
+stty -echo
+IFS= read -r RAYCTL_BEARER_TOKEN
+stty echo
+printf '\n'
+export RAYCTL_BEARER_TOKEN
+
+rayctl rbac get "$VC"
+
+unset RAYCTL_BEARER_TOKEN BEARER_TOKEN
+```
+
+指定 ClusterRoleBinding labelSelector：
+
+```bash
+export KUBECONFIG=/root/kubeconfig
+
+VC='<vc-name-or-uid>'
+LABEL_SELECTOR='<label-selector>'
+
+printf 'Bearer token: '
+stty -echo
+IFS= read -r RAYCTL_BEARER_TOKEN
+stty echo
+printf '\n'
+export RAYCTL_BEARER_TOKEN
+
+rayctl rbac get "$VC" -l "$LABEL_SELECTOR"
+
+unset RAYCTL_BEARER_TOKEN BEARER_TOKEN
+```
+
+`rayctl rbac get` 默认 selector：
+
+```text
+resource.compute.sensecore.cn/control
+```
+
+token 要求：
+
+* `rayctl rbac get` 需要 console bearer token。
+* 命令从 `RAYCTL_BEARER_TOKEN` 或 `BEARER_TOKEN` 读取 token。
+* 不要把 token 写成命令行参数、不要写入 SOP、不要回显 token、不要保存到持久环境文件。
+* 如果没有 token，停止并说明需要用户在交互 shell 中临时设置 `RAYCTL_BEARER_TOKEN` 或 `BEARER_TOKEN`。
+
+边界：
+
+* 以上命令都是只读查询。
+* 查询对象必须明确：AFS 名、用户名 / 用户 ID、用户组名 / ID、VC 名 / UID。
+* `rayctl auth afs` 查询授权归属，不替代 `rayctl afs check` 的 AFS / PVC / PV 映射查询。
+* `rayctl rbac get` 查询的是 VC 集群维度 ClusterRoleBinding，不替代 vcluster kubeconfig 下的业务资源查询。
+* 缺少关键标识或 token 时停止，不要扩大到全量扫描。
 
 ---
 

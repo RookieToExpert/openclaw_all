@@ -42,7 +42,7 @@
 
 必须明确：
 
-- VC 名称或 VC UUID。
+- VC 名称或 VC UID。
 - VC kubeconfig 路径。
 - HC kubeconfig / context。
 - HC namespace。
@@ -50,6 +50,23 @@
 - 可选：VC 内用于验证的 namespace 和 pod name。
 
 缺少任一关键标识时停止。
+
+如果用户只提供 VC 名称或别名、但后续定位需要 VC UID，必须先按 `tools/rayctl-kubectl.md` → 4.2 平台 VC 信息查询执行：
+
+```bash
+export KUBECONFIG=/root/kubeconfig
+
+VC='<vc-name-or-uid>'
+
+rayctl vc get "$VC"
+```
+
+要求：
+
+- 必须唯一确认目标 VC UID。
+- 查不到 VC 时停止。
+- 查到多个候选且无法唯一判断时停止。
+- 不要为了猜 VC UID 自动遍历所有 vcluster 或全 namespace。
 
 ### 2. VC kubeconfig 只读验证
 
@@ -68,11 +85,13 @@
 必须确认：
 
 - 当前 context 是 host cluster。
+- 已通过 `rayctl vc get` 或用户提供信息唯一确认目标 VC UID。
 - 只在已知 HC namespace 下查询。
 - 目标 Pod、ownerReference、Deployment / StatefulSet、Ready、restart、age、events 一致。
 
 以下情况必须停止：
 
+- VC UID 不明确。
 - owner 不明确。
 - 目标不唯一。
 - HC namespace 不明确。
@@ -241,15 +260,17 @@
 先只读确认：
 
 - 当前 context 是 host cluster
-- `rayctl cluster get` 能拿到目标 VC UID
-- `clusterpolicies/disallow-privileged-containers` 存在
-- 当前 policy 内容里是否已经包含该 VC UID
+- `rayctl vc get <vc-name-or-uid>` 能唯一定位目标 VC
+- `rayctl policy get disallow-privileged-containers <vc-name-or-uid>` 能核对目标 VC 是否已经在白名单中
+- 如 rayctl 输出不明确，再用 HC `kubectl` 只读查看 `clusterpolicies/disallow-privileged-containers`
 
 以下情况停止：
 
 - policy 不存在
 - 查不到目标 VC UID
+- 查到多个 VC 候选，无法唯一判断
 - 当前 policy 已经包含该 VC
+- rayctl 与 kubectl 只读核对结果冲突且无法解释
 - 当前 policy 结构与预期差异过大，无法安全判断应修改的位置
 
 ### 3. 写操作确认
@@ -262,8 +283,8 @@
 - 影响范围
 - 风险：错误 VC UID 会把错误 VC 加入例外
 - 回滚方式：删除刚加入的该 VC 对应例外项
-- 执行前最后复核方式
-- 执行后复核方式
+- 执行前最后复核方式：重新 `rayctl vc get` 和 `rayctl policy get`
+- 执行后复核方式：优先 `rayctl policy get`，必要时 HC `kubectl` 只读核对 YAML
 - 预览命令
 
 等待用户明确确认后才能继续。
@@ -272,15 +293,15 @@
 
 执行前重新只读复核：
 
-- 再次确认目标 VC UID
-- 再次确认 policy 仍存在
-- 再次确认该 VC UID 尚未出现在 policy 中
+- 再次用 `rayctl vc get` 确认目标 VC UID
+- 再次用 `rayctl policy get disallow-privileged-containers <vc-name-or-uid>` 确认该 VC 尚未在白名单中
+- 如 rayctl 输出不明确，再确认 policy 仍存在，且该 VC UID 尚未出现在 policy YAML 中
 
 然后优先按 `tools/rayctl-kubectl.md` 中的 `rayctl policy update disallow-privileged-containers` 执行。
 
 执行后必须复核：
 
-- `clusterpolicies/disallow-privileged-containers` 中已出现目标 VC UID
+- `rayctl policy get disallow-privileged-containers <vc-name-or-uid>` 显示目标 VC 已在白名单中
 - 如 `rayctl` 输出不明确，再用 HC `kubectl` 只读检查 policy YAML
 
 如果 `rayctl` 不可用或结果不明确，只能把 `kubectl edit` 作为人工兜底方案展示给用户，不要在未确认结构前自动 edit。

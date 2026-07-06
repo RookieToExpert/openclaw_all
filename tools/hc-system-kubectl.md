@@ -265,7 +265,14 @@ VC_QUERY='<vc-name-or-uid>'
 VC_UID='<vc-uid>'
 ```
 
-只读查看 policy：
+优先使用 rayctl 只读查看 policy 白名单：
+
+```bash
+rayctl -k "$HC_KUBECONFIG" policy get "$POLICY_NAME"
+rayctl -k "$HC_KUBECONFIG" policy get "$POLICY_NAME" "$VC_QUERY"
+```
+
+如果 rayctl 输出不明确，再用 kubectl 只读查看 policy YAML：
 
 ```bash
 kubectl --kubeconfig "$HC_KUBECONFIG" get clusterpolicies "$POLICY_NAME" -o yaml
@@ -287,16 +294,17 @@ operator: Exists
 
 执行前必须先实时确认 live YAML 结构仍然匹配，不要只凭记忆写入。
 
-优先使用 rayctl：
+确认后优先使用 rayctl 更新：
 
 ```bash
 # 确认后执行
-rayctl policy update disallow-privileged-containers "$VC_QUERY"
+rayctl -k "$HC_KUBECONFIG" policy update disallow-privileged-containers "$VC_QUERY"
 ```
 
 执行后复核：
 
 ```bash
+rayctl -k "$HC_KUBECONFIG" policy get "$POLICY_NAME" "$VC_QUERY"
 kubectl --kubeconfig "$HC_KUBECONFIG" get clusterpolicies "$POLICY_NAME" -o yaml | grep -F -- "$VC_UID"
 kubectl --kubeconfig "$HC_KUBECONFIG" get clusterpolicies "$POLICY_NAME" -o yaml | grep -n -C 6 -F -- "$VC_UID"
 ```

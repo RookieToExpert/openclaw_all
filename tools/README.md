@@ -29,7 +29,7 @@ TOOLS.md
 | 文件                      | 内容                                                            | 典型使用场景                                              |
 | ----------------------- | ------------------------------------------------------------- | --------------------------------------------------- |
 | `environment-entry.md`  | 开发机、堡垒机、跳板机入口速查；复杂 SSH heredoc 通用规则                           | 入口不确定、需要登录开发机、需要复杂远程脚本                              |
-| `rayctl-kubectl.md`     | kubeconfig、rayctl、kubectl、节点、任务、PVC / PV / AFS、ECS / AIS、policy update 命令模板 | vcjob 查询、节点查询、PVC 查询、rayctl 操作                      |
+| `rayctl-kubectl.md`     | kubeconfig、rayctl、kubectl、节点、任务、PVC / PV / AFS、ECS / AIS、VC 查询、平台授权、RBAC、policy get / update 命令模板 | vcjob 查询、节点查询、VC 查询、PVC 查询、授权查询、rayctl 操作                      |
 | `machine-types.md`      | 机器类型、芯片、vcluster 族、资源名、IP 段初筛映射                               | 判断 IP / vcluster / machine-type 是 MUXI、910B 还是 910C |
 | `job-templates.md`      | `rayctl job create` 任务创建模板和资源范围                               | 创建训练 / 推理任务、生成 rayctl job create 命令                 |
 | `dcluster-ansible.md`   | D 集群物理机 ansible 单 IP、JumpServer / 跳板机入口、转义规则                  | 查物理机目录、日志、mx-smi、磁盘、DNS、本地脚本                        |
@@ -72,7 +72,11 @@ TOOLS.md
 * `rayctl job get`
 * `rayctl job get cluster`
 * `rayctl node get / check / describe`
+* `rayctl vc get`
+* `rayctl policy get disallow-privileged-containers`
 * `rayctl policy update disallow-privileged-containers`
+* `rayctl auth user / afs / groups`
+* `rayctl rbac get`
 * vcluster 内 `vcjob` / Pod / PodGroup / Event / log 查询
 * PVC / AFS / PV 查询与创建
 * ECS / AIS 查询
