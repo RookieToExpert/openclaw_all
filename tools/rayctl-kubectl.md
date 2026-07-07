@@ -358,6 +358,128 @@ kubectl get podgroup -A | grep -F -- "$JOB"
 
 ---
 
+### 3.3.1 Volcano 无法调度查询模板
+
+前提：
+
+* 已确认实际 vcluster kubeconfig。
+* 已知 namespace。
+* 已知 job / pod / PodGroup 至少一个关键标识。
+* 本节只读；任何 patch / delete / rollout restart 都必须回到写操作确认流程。
+
+```bash
+export KUBECONFIG=/root/D/<实际 kubeconfig 文件名>
+
+NS='<namespace>'
+JOB='<job-name>'
+POD='<pod-name>'
+PG='<podgroup-name>'
+```
+
+确认 Pod 是否走 Volcano：
+
+```bash
+kubectl get pod "$POD" -n "$NS" -o json | jq -r '
+  "schedulerName=" + (.spec.schedulerName // ""),
+  "nodeName=" + (.spec.nodeName // ""),
+  "priorityClassName=" + (.spec.priorityClassName // ""),
+  "annotations=" + ((.metadata.annotations // {}) | tojson),
+  "nodeSelector=" + ((.spec.nodeSelector // {}) | tojson),
+  "affinity=" + ((.spec.affinity // {}) | tojson),
+  "tolerations=" + ((.spec.tolerations // []) | tojson),
+  (.spec.containers[] | "container=" + .name + " requests=" + ((.resources.requests // {}) | tojson) + " limits=" + ((.resources.limits // {}) | tojson))
+'
+```
+
+Pod 未创建时查 vcjob：
+
+```bash
+kubectl get vcjob "$JOB" -n "$NS" -o yaml
+kubectl describe vcjob "$JOB" -n "$NS"
+```
+
+查 PodGroup：
+
+```bash
+kubectl get podgroup "$PG" -n "$NS" -o wide
+kubectl describe podgroup "$PG" -n "$NS"
+kubectl get podgroup "$PG" -n "$NS" -o json | jq -r '
+  "phase=" + (.status.phase // ""),
+  "minAvailable=" + ((.spec.minMember // .spec.minAvailable // "") | tostring),
+  "queue=" + (.spec.queue // ""),
+  ((.status.conditions // [])[]? | "condition type=" + (.type // "") + " status=" + (.status // "") + " reason=" + (.reason // "") + " message=" + (.message // ""))
+'
+```
+
+查事件：
+
+```bash
+kubectl get events -n "$NS" --sort-by=.lastTimestamp | tail -100
+kubectl get events -n "$NS" --sort-by=.lastTimestamp | grep -F -- "$JOB"
+kubectl get events -n "$NS" --sort-by=.lastTimestamp | grep -F -- "$POD"
+kubectl get events -n "$NS" --sort-by=.lastTimestamp | grep -F -- "$PG"
+```
+
+只读查看 Volcano 组件。
+
+组件 namespace 需先确认，不确定时不要全量扫描；常见为 vcluster 内 `kube-system`：
+
+```bash
+VC_SYSTEM_NS='kube-system'
+
+kubectl get cm -n "$VC_SYSTEM_NS" | grep -F -- 'volcano'
+kubectl get pods -n "$VC_SYSTEM_NS" | grep -E 'volcano-scheduler|volcano-controllers|volcano-admission'
+kubectl get cm volcano-scheduler-configmap -n "$VC_SYSTEM_NS" -o yaml
+kubectl get cm volcano-admission-configmap -n "$VC_SYSTEM_NS" -o yaml
+```
+
+查日志关键字：
+
+```bash
+kubectl logs -n "$VC_SYSTEM_NS" deploy/volcano-controllers --tail=200 | grep -F -- 'Failed to create pod'
+kubectl logs -n "$VC_SYSTEM_NS" deploy/volcano-scheduler --tail=300 | grep -E "$JOB|$POD|$PG|log by search keywords|overused|nil NPU|NodeAffinity|Insufficient"
+```
+
+如果组件不是 Deployment 或名称不匹配，先用已确认 namespace 内的 `kubectl get pods` 结果定位具体 Pod 名称，再查日志；不要扩大到未知 namespace。
+
+NPU 专项：
+
+```bash
+kubectl get cm -n kube-system | grep -F -- 'mindx-dl-deviceinfo-'
+```
+
+分类规则：
+
+* `pod group is not ready`：Pod 未全部创建，继续查 vcjob / controller 创建 Pod 失败原因。
+* `Insufficient cpu` / `Insufficient memory` / accelerator 不足：切到 NotEnoughResources 资源判断模板。
+* `NodeAffinity predicates failed` / selector mismatch：核对 Pod nodeSelector / affinity 与候选节点 label。
+* `capacity overused` 且出现 `attachable-volumes-csi-csi-provisioner`：检查 PVC storageClass provisioner 与 Volcano ignored provisioners。
+* `node check failed` / `log by search keywords`：继续查 scheduler 日志关键字；NPU 场景检查 device info configmap。
+
+输出模板：
+
+```text
+结论：
+- 当前最可能卡点：
+
+证据：
+- schedulerName / annotations：
+- PodGroup phase / conditions：
+- Events：
+- Volcano component config/log：
+
+判断：
+- 确定事实：
+- 推断：
+- 待验证点：
+
+下一步：
+- 只读继续项：
+- 写操作建议（如有，需确认）：
+```
+
+---
+
 ### 3.4 kubectl 兜底查询
 
 rayctl 不够明确时，必须先进入已确认的 vcluster kubeconfig：
