@@ -88,9 +88,24 @@ rayctl vc get [vc-name-or-uid]
 rayctl policy get disallow-privileged-containers [vc-name-or-uid]
 rayctl policy update disallow-privileged-containers <vc-name-or-uid>
 rayctl user get <username-or-userid> [--jobs]
-rayctl auth user <username-or-userid>
-rayctl auth afs <afs-name>
-rayctl auth groups <group-name-or-id>
+rayctl auth check user <username-or-userid>
+rayctl auth check vc <vc-name-or-uid>
+rayctl auth check subnet <subnet-name>
+rayctl auth check afs <afs-name>
+rayctl auth check ccr <namespace-name>
+rayctl auth check ais <ais-name>
+rayctl auth check groups <group-name-or-id>
+rayctl auth roles <afs|ais|ccr|subnet|vc>
+rayctl auth grant vc <vc-name> [--user <username-or-userid>|--group <group-name-or-id>] --role <user|admin|role_name> [--dry-run]
+rayctl auth grant subnet <subnet-name> [--user <username-or-userid>|--group <group-name-or-id>] --role <reader|editor|role_name> [--dry-run]
+rayctl auth grant afs <afs-name> [--user <username-or-userid>|--group <group-name-or-id>] --role <editor|reader|owner|role_name> [--dry-run]
+rayctl auth grant ccr <namespace-name> [--user <username-or-userid>|--group <group-name-or-id>] --role <user|imageUser|owner|role_name> [--dry-run]
+rayctl auth grant ais <ais-name> [--user <username-or-userid>|--group <group-name-or-id>] --role <owner|role_name> [--dry-run]
+rayctl auth remove vc <vc-name> [--user <username-or-userid>|--group <group-name-or-id>] --role <user|admin|role_name> [--dry-run]
+rayctl auth remove subnet <subnet-name> [--user <username-or-userid>|--group <group-name-or-id>] --role <reader|editor|role_name> [--dry-run]
+rayctl auth remove afs <afs-name> [--user <username-or-userid>|--group <group-name-or-id>] --role <editor|reader|owner|role_name> [--dry-run]
+rayctl auth remove ccr <namespace-name> [--user <username-or-userid>|--group <group-name-or-id>] --role <user|imageUser|owner|role_name> [--dry-run]
+rayctl auth remove ais <ais-name> [--user <username-or-userid>|--group <group-name-or-id>] --role <owner|role_name> [--dry-run]
 rayctl rbac get <vc-name-or-uid> [-l <label-selector>]
 rayctl afs check <afs-name-or-uid> [...]
 rayctl pvc check <pvc-name> [...]
@@ -947,9 +962,14 @@ rayctl user get zhangjinouwen --jobs
 
 用于查询平台资源授权关系：
 
-* `rayctl auth afs`：查看 AFS 归属的用户 / 用户组授权。
-* `rayctl auth user`：查看某个用户所属组和权限。
-* `rayctl auth groups`：查看某个用户组信息和权限。
+* `rayctl auth check vc`：查看 VC 归属的用户 / 用户组授权。
+* `rayctl auth check subnet`：查看 Subnet 归属的用户 / 用户组授权。
+* `rayctl auth check afs`：查看 AFS 归属的用户 / 用户组授权。
+* `rayctl auth check ccr`：查看 CCR namespace 归属的用户 / 用户组授权。
+* `rayctl auth check ais`：查看 AIS / AI Space 归属的用户 / 用户组授权。
+* `rayctl auth check user`：查看某个用户所属组和权限。
+* `rayctl auth check groups`：查看某个用户组信息和权限。
+* `rayctl auth roles`：查看指定资源类型可授权角色。
 * `rayctl rbac get`：查看某个 VC 集群维度的 ClusterRoleBinding。
 
 查询用户权限：
@@ -959,7 +979,27 @@ export KUBECONFIG=/root/kubeconfig
 
 USER_QUERY='<username-or-userid>'
 
-rayctl auth user "$USER_QUERY"
+rayctl auth check user "$USER_QUERY"
+```
+
+查询 VC 归属授权：
+
+```bash
+export KUBECONFIG=/root/kubeconfig
+
+VC='<vc-name-or-uid>'
+
+rayctl auth check vc "$VC"
+```
+
+查询 Subnet 归属授权：
+
+```bash
+export KUBECONFIG=/root/kubeconfig
+
+SUBNET='<subnet-name>'
+
+rayctl auth check subnet "$SUBNET"
 ```
 
 查询 AFS 归属授权：
@@ -969,7 +1009,27 @@ export KUBECONFIG=/root/kubeconfig
 
 AFS='<afs-name>'
 
-rayctl auth afs "$AFS"
+rayctl auth check afs "$AFS"
+```
+
+查询 CCR namespace 归属授权：
+
+```bash
+export KUBECONFIG=/root/kubeconfig
+
+CCR='<namespace-name>'
+
+rayctl auth check ccr "$CCR"
+```
+
+查询 AIS / AI Space 归属授权：
+
+```bash
+export KUBECONFIG=/root/kubeconfig
+
+AIS='<ais-name>'
+
+rayctl auth check ais "$AIS"
 ```
 
 查询用户组权限：
@@ -979,13 +1039,25 @@ export KUBECONFIG=/root/kubeconfig
 
 GROUP_QUERY='<group-name-or-id>'
 
-rayctl auth groups "$GROUP_QUERY"
+rayctl auth check groups "$GROUP_QUERY"
 ```
 
 `groups` 也支持别名 `group`：
 
 ```bash
-rayctl auth group "$GROUP_QUERY"
+rayctl auth check group "$GROUP_QUERY"
+```
+
+查询资源可授权角色：
+
+```bash
+export KUBECONFIG=/root/kubeconfig
+
+rayctl auth roles vc
+rayctl auth roles subnet
+rayctl auth roles afs
+rayctl auth roles ccr
+rayctl auth roles ais
 ```
 
 查询 VC 集群维度 RBAC：
@@ -1044,10 +1116,167 @@ token 要求：
 边界：
 
 * 以上命令都是只读查询。
-* 查询对象必须明确：AFS 名、用户名 / 用户 ID、用户组名 / ID、VC 名 / UID。
-* `rayctl auth afs` 查询授权归属，不替代 `rayctl afs check` 的 AFS / PVC / PV 映射查询。
+* 查询对象必须明确：VC 名 / UID、Subnet 名、AFS 名、CCR namespace 名、AIS 名、用户名 / 用户 ID、用户组名 / ID。
+* `rayctl auth check vc / subnet / afs / ccr / ais` 查询资源授权归属，不替代对应资源自身的详情、状态或映射查询。
+* `rayctl auth roles <resource-type>` 只查询该资源类型可授权角色，不查询某个具体资源的已有授权。
 * `rayctl rbac get` 查询的是 VC 集群维度 ClusterRoleBinding，不替代 vcluster kubeconfig 下的业务资源查询。
 * 缺少关键标识或 token 时停止，不要扩大到全量扫描。
+
+---
+
+### 4.6 平台资源授权增删写操作模板
+
+用于给平台资源新增或移除用户 / 用户组授权：
+
+* `rayctl auth grant vc`：给 VC 授权。
+* `rayctl auth grant subnet`：给 Subnet 授权。
+* `rayctl auth grant afs`：给 AFS 授权。
+* `rayctl auth grant ccr`：给 CCR namespace 授权。
+* `rayctl auth grant ais`：给 AIS / AI Space 授权。
+* `rayctl auth remove vc`：移除 VC 授权。
+* `rayctl auth remove subnet`：移除 Subnet 授权。
+* `rayctl auth remove afs`：移除 AFS 授权。
+* `rayctl auth remove ccr`：移除 CCR namespace 授权。
+* `rayctl auth remove ais`：移除 AIS / AI Space 授权。
+
+前提：
+
+* 使用 HC kubeconfig。
+* 已明确资源类型、资源名称、授权对象和角色。
+* 角色名不确定时，先用 `rayctl auth roles <afs|ais|ccr|subnet|vc>` 查询该资源类型可授权角色，再选择 `grant` / `remove` 的 `--role`。
+* 用户和用户组二选一，不要同时传 `--user` 和 `--group`。
+* Bearer token 只能通过临时环境变量读取，不要写入命令行参数、文档、聊天记录或持久环境文件。
+* 新增授权和移除授权都是写操作，执行前必须完成 `MEMORY.md` 写操作确认流程。
+
+角色速查：
+
+```text
+vc: user / admin / 完整 role_name
+subnet: reader / editor / 完整 role_name
+afs: editor / reader / owner / 完整 role_name
+ccr: user / imageUser / owner / 完整 role_name
+ais: owner / 完整 role_name
+```
+
+通用变量：
+
+```bash
+export KUBECONFIG=/root/kubeconfig
+
+RESOURCE_NAME='<resource-name>'
+ROLE='<role>'
+USER_QUERY='<username-or-userid>'
+GROUP_QUERY='<group-name-or-id>'
+SCOPE='<optional-scope>'
+```
+
+登录或临时设置 token：
+
+```bash
+rayctl auth login
+rayctl auth token
+```
+
+租户登录凭据：
+
+```text
+~/.openclaw/workspace/platform.json
+```
+
+使用规则：
+
+* 优先执行 `rayctl auth token`，登录态有效时不要读取凭据文件。
+* 只有登录态失效且需要 `rayctl auth login` 时，才读取对应集群和租户的账号密码。
+* 不要打印、复制、转存或记录 `platform.json` 中的密码。
+* 不要把密码放到命令行参数；如需交互输入，用不回显方式输入。
+
+如需手动输入 token：
+
+```bash
+printf 'Bearer token: '
+stty -echo
+IFS= read -r RAYCTL_BEARER_TOKEN
+stty echo
+printf '\n'
+export RAYCTL_BEARER_TOKEN
+```
+
+新增授权 dry-run 预检示例：
+
+```bash
+# 授权给用户。
+rayctl auth grant vc "$RESOURCE_NAME" --user "$USER_QUERY" --role "$ROLE" --dry-run
+rayctl auth grant subnet "$RESOURCE_NAME" --user "$USER_QUERY" --role "$ROLE" --dry-run
+rayctl auth grant afs "$RESOURCE_NAME" --user "$USER_QUERY" --role "$ROLE" --dry-run
+rayctl auth grant ccr "$RESOURCE_NAME" --user "$USER_QUERY" --role "$ROLE" --dry-run
+rayctl auth grant ais "$RESOURCE_NAME" --user "$USER_QUERY" --role "$ROLE" --dry-run
+
+# 授权给用户组。
+rayctl auth grant vc "$RESOURCE_NAME" --group "$GROUP_QUERY" --role "$ROLE" --dry-run
+rayctl auth grant subnet "$RESOURCE_NAME" --group "$GROUP_QUERY" --role "$ROLE" --dry-run
+rayctl auth grant afs "$RESOURCE_NAME" --group "$GROUP_QUERY" --role "$ROLE" --dry-run
+rayctl auth grant ccr "$RESOURCE_NAME" --group "$GROUP_QUERY" --role "$ROLE" --dry-run
+rayctl auth grant ais "$RESOURCE_NAME" --group "$GROUP_QUERY" --role "$ROLE" --dry-run
+```
+
+如资源需要手动指定 scope，在 dry-run 和真实执行中保持一致：
+
+```bash
+rayctl auth grant vc "$RESOURCE_NAME" --user "$USER_QUERY" --role "$ROLE" --scope "$SCOPE" --dry-run
+```
+
+移除授权 dry-run 预检示例：
+
+```bash
+# 移除用户授权。
+rayctl auth remove vc "$RESOURCE_NAME" --user "$USER_QUERY" --role "$ROLE" --dry-run
+rayctl auth remove subnet "$RESOURCE_NAME" --user "$USER_QUERY" --role "$ROLE" --dry-run
+rayctl auth remove afs "$RESOURCE_NAME" --user "$USER_QUERY" --role "$ROLE" --dry-run
+rayctl auth remove ccr "$RESOURCE_NAME" --user "$USER_QUERY" --role "$ROLE" --dry-run
+rayctl auth remove ais "$RESOURCE_NAME" --user "$USER_QUERY" --role "$ROLE" --dry-run
+
+# 移除用户组授权。
+rayctl auth remove vc "$RESOURCE_NAME" --group "$GROUP_QUERY" --role "$ROLE" --dry-run
+rayctl auth remove subnet "$RESOURCE_NAME" --group "$GROUP_QUERY" --role "$ROLE" --dry-run
+rayctl auth remove afs "$RESOURCE_NAME" --group "$GROUP_QUERY" --role "$ROLE" --dry-run
+rayctl auth remove ccr "$RESOURCE_NAME" --group "$GROUP_QUERY" --role "$ROLE" --dry-run
+rayctl auth remove ais "$RESOURCE_NAME" --group "$GROUP_QUERY" --role "$ROLE" --dry-run
+```
+
+确认后真实新增授权示例：
+
+```bash
+rayctl auth grant vc "$RESOURCE_NAME" --user "$USER_QUERY" --role "$ROLE" --yes
+rayctl auth grant subnet "$RESOURCE_NAME" --user "$USER_QUERY" --role "$ROLE" --yes
+rayctl auth grant afs "$RESOURCE_NAME" --user "$USER_QUERY" --role "$ROLE" --yes
+rayctl auth grant ccr "$RESOURCE_NAME" --user "$USER_QUERY" --role "$ROLE" --yes
+rayctl auth grant ais "$RESOURCE_NAME" --user "$USER_QUERY" --role "$ROLE" --yes
+```
+
+确认后真实移除授权示例：
+
+```bash
+rayctl auth remove vc "$RESOURCE_NAME" --user "$USER_QUERY" --role "$ROLE" --yes
+rayctl auth remove subnet "$RESOURCE_NAME" --user "$USER_QUERY" --role "$ROLE" --yes
+rayctl auth remove afs "$RESOURCE_NAME" --user "$USER_QUERY" --role "$ROLE" --yes
+rayctl auth remove ccr "$RESOURCE_NAME" --user "$USER_QUERY" --role "$ROLE" --yes
+rayctl auth remove ais "$RESOURCE_NAME" --user "$USER_QUERY" --role "$ROLE" --yes
+```
+
+执行后清理 token：
+
+```bash
+unset RAYCTL_BEARER_TOKEN BEARER_TOKEN
+```
+
+边界：
+
+* 未确认前只允许执行 `rayctl auth grant ... --dry-run` 或 `rayctl auth remove ... --dry-run`。
+* 确认后执行时，必须只执行用户确认的那一个操作类型、资源类型、资源名、授权对象和角色。
+* 不要为了补齐资源名、用户、用户组或角色而全量扫描。
+* `--yes` 只能用于用户已经按 `MEMORY.md` 明确确认后的真实新增或移除授权。
+* `--bearer-token` 参数会把 token 暴露在命令行中，默认不要使用。
+* `--debug-auth` 只打印脱敏来源信息；一般无需使用。
 
 ---
 

@@ -8,6 +8,7 @@
 - 扩容 VC / 调整 VC flavor / 修改 VC 规格。
 - 更新 `disallow-privileged-containers` policy，把某个 VC 加入例外。
 - 查询 HC 上某个 VC 控制面组件状态。
+- 给 VC / Subnet / AFS / CCR / AIS 授权用户或用户组，或移除对应授权。
 
 不适用场景：
 
@@ -30,6 +31,7 @@
 - 默认只读。
 - delete / SQL update 都是写操作，必须确认。
 - `rayctl policy update disallow-privileged-containers ...` 和对应的 HC policy 修改属于写操作，必须确认。
+- `rayctl auth grant vc / subnet / afs / ccr / ais ...` 和 `rayctl auth remove vc / subnet / afs / ccr / ais ...` 属于平台资源授权写操作，必须确认。
 - 不允许为了猜目标而全量扫描所有 namespace。
 - 禁止用 HC kubeconfig 查询、创建、删除 VC 内业务资源。
 - 需要验证 VC 内 get/list / Pod 现象时，必须切回 VC kubeconfig。
@@ -308,6 +310,93 @@ rayctl vc get "$VC"
 
 ---
 
+### 场景 D：平台资源授权增删
+
+适用场景：
+
+- 给某个 VC 授权用户或用户组。
+- 给某个 Subnet 授权用户或用户组。
+- 给某个 AFS 授权用户或用户组。
+- 给某个 CCR namespace 授权用户或用户组。
+- 给某个 AIS / AI Space 授权用户或用户组。
+- 从某个 VC / Subnet / AFS / CCR / AIS 移除用户或用户组授权。
+
+不适用场景：
+
+- 只查询 AFS / user / group 授权归属，直接走 `tools/rayctl-kubectl.md` → 4.5 平台授权与 RBAC 查询。
+- 查询或创建 PVC，走 `skills/pvc-afs/SKILL.md`。
+- 镜像制作、tag、push，走 `skills/image-build-push/SKILL.md`。
+
+### 1. 收集必要信息
+
+必须明确：
+
+- 授权资源类型：`vc` / `subnet` / `afs` / `ccr` / `ais`。
+- 操作类型：新增授权 `grant` 或移除授权 `remove`。
+- 资源名称。
+- 授权对象：用户 username / user id，或用户组 name / group id；两者必须二选一。
+- 角色。
+- 是否需要手动指定 scope。
+
+角色范围以 `tools/rayctl-kubectl.md` → 4.6 平台资源授权增删写操作模板为准。
+
+缺少资源名称、授权对象或角色时必须停止，不要猜测默认角色。
+
+### 2. 只读预检
+
+执行前必须：
+
+- 使用 HC kubeconfig。
+- 核对目标资源名称和授权对象名称。
+- 查询已有授权关系；新增时避免重复授权，移除时确认目标授权确实存在。
+- 使用 `--dry-run` 生成将要提交的授权 payload。
+
+只读预检和 dry-run 命令以 `tools/rayctl-kubectl.md` → 4.6 为准。
+
+### 3. 写操作确认
+
+确认前必须输出：
+
+- 操作类型：新增授权或移除授权。
+- 授权资源类型和资源名称。
+- 授权对象类型和名称。
+- 授权角色。
+- 是否手动指定 scope。
+- dry-run 摘要。
+- 影响范围。
+- 风险：新增到错误资源 / 对象 / 角色，或误删已有授权导致用户失权。
+- 回滚方式：新增授权的回滚是移除本次新增授权；移除授权的回滚是按原资源、对象、角色重新 grant。
+- 执行前最后复核方式：重新查询资源、授权对象和 dry-run。
+- 执行后复核方式：重新查询授权关系或让用户在控制台核对。
+- 预览命令。
+
+等待用户明确确认后才能继续。
+
+### 4. 确认后执行
+
+执行前重新只读复核：
+
+- 资源名称仍唯一明确。
+- 授权对象仍唯一明确。
+- dry-run payload 与确认内容一致。
+
+然后按 `tools/rayctl-kubectl.md` → 4.6 执行对应 `rayctl auth grant ...` 或 `rayctl auth remove ...`。
+
+执行后必须复核：
+
+- 新增授权后，查询已有授权关系可以看到新增授权。
+- 移除授权后，查询已有授权关系不再看到目标授权。
+- 如果当前资源类型暂无 check 命令，则返回命令结果并提示用户在控制台核对。
+
+边界：
+
+- Bearer token 只允许通过临时环境变量读取，不得写入文档、命令历史或聊天记录。
+- 未确认前禁止真实授权或真实移除授权。
+- 不使用 `--yes` 跳过 OpenClaw 的写操作确认流程。
+- 不在目标资源、授权对象或角色不明确时执行授权。
+
+---
+
 ## 输出要求
 
 输出要先给结论，再给证据，区分：
@@ -321,7 +410,7 @@ rayctl vc get "$VC"
 
 - 禁止用 HC kubeconfig 查询或删除 VC 内业务 Pod / vcjob / PodGroup。
 - 禁止不知道 namespace 时 `kubectl get pod -A` 猜目标。
-- 禁止没有确认就 delete / SQL update / policy update。
+- 禁止没有确认就 delete / SQL update / policy update / auth grant / auth remove。
 - 禁止 owner 不明确时删除控制面 Pod。
 - 禁止把 `k8s-cleanup` 当作 VC 控制面重置流程。
 - 禁止在 kubeconfig 类型不明确时继续。

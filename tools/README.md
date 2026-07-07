@@ -75,7 +75,9 @@ TOOLS.md
 * `rayctl vc get`
 * `rayctl policy get disallow-privileged-containers`
 * `rayctl policy update disallow-privileged-containers`
-* `rayctl auth user / afs / groups`
+* `rayctl auth check user / afs / groups`
+* `rayctl auth grant vc / subnet / afs / ccr / ais`
+* `rayctl auth remove vc / subnet / afs / ccr / ais`
 * `rayctl rbac get`
 * vcluster 内 `vcjob` / Pod / PodGroup / Event / log 查询
 * PVC / AFS / PV 查询与创建

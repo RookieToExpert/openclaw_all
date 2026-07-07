@@ -39,7 +39,8 @@ TOOLS.md 只负责路由，不负责替代 SOP。
 | 查询 VC 基础信息 / VC UID / VC 列表 | 无需 skill，直接读 `tools/rayctl-kubectl.md` → 4.2 平台 VC 信息查询 | 如需继续查该 vcluster 内资源，再读 `tools/rayctl-kubectl.md` → 1. kubeconfig、3. 查询任务 |
 | 查询某个 vcluster 在 HC 中的控制面 namespace、逻辑 namespace 与 host resource namespace 映射 | 无需 skill，直接读 `tools/rayctl-kubectl.md` → 4.3 vcluster 与 host namespace 映射查询 | 如需继续查该 vcluster 内资源，再读 `tools/rayctl-kubectl.md` → 1. kubeconfig、3. 查询任务 |
 | 查询平台用户信息 / 用户 ID / 当前租户活跃任务 | 无需 skill，直接读 `tools/rayctl-kubectl.md` → 4.4 平台用户查询 | 如需继续排障该用户的具体任务，再读 `tools/rayctl-kubectl.md` → 3. 查询任务 |
-| 查询 AFS 授权归属 / 某个 user 权限 / groups 权限 / 某个 VC 的 RBAC 权限归属 | 无需 skill，直接读 `tools/rayctl-kubectl.md` → 4.5 平台授权与 RBAC 查询 | `rayctl rbac get` 需要 bearer token，只能临时环境变量读取，不得写入知识库或日志 |
+| 查询 VC / Subnet / AFS / CCR / AIS 授权归属、资源可授权角色、某个 user 权限 / groups 权限、某个 VC 的 RBAC 权限归属 | 无需 skill，直接读 `tools/rayctl-kubectl.md` → 4.5 平台授权与 RBAC 查询 | `rayctl rbac get` 需要 bearer token，只能临时环境变量读取，不得写入知识库或日志 |
+| 给 VC / Subnet / AFS / CCR / AIS 授权或移除授权 | `skills/hc-system-op/SKILL.md` → 场景 D 平台资源授权增删 | `tools/rayctl-kubectl.md` → 4.6 平台资源授权增删写操作模板 |
 | 机器类型 / 芯片类型 / vcluster 族 / IP 段 / 资源名 / 节点类型映射查询 | 无需 skill，直接读 `tools/machine-types.md` | 如需实时验证某个节点或 IP，再读 `tools/rayctl-kubectl.md` → 4.1 节点查询 |                                       
 | 查询节点故障 / 维修记录                                              | `tools/fault-records.md`                 | -                                                      |
 

@@ -37,7 +37,7 @@ TOOLS.md
 | `k8s-cleanup`            | 批量删除 Pod / vcjob / Failed 资源；历史 vcjob TTL 回收；Aborted 未回收处理                                | `tools/k8s-cleanup.md`、必要时 `tools/rayctl-kubectl.md`                                                             |
 | `dcluster-machine-op`    | D 集群物理机目录、日志、进程、磁盘、NPU、DNS、宿主机训练网互通、本地脚本                                            | `tools/dcluster-ansible.md`；必要时读 `tools/rayctl-kubectl.md` 找候选宿主机                                             |
 | `image-build-push`      | 堡垒机内镜像制作 / 打标 / 打驱动 / push；MUXI 镜像加 driver；非 MUXI 镜像推送到指定 ccr | `tools/image-build-push.md`、`tools/environment-entry.md` |
-| `hc-system-op`           | HC 上平台 / VC 控制面系统组件操作；重启 / 重置 VC 控制面；通过平台数据库调整 VC flavor；更新 `disallow-privileged-containers` policy；查询 HC 系统组件状态 | `tools/hc-system-kubectl.md`、`tools/rayctl-kubectl.md` |
+| `hc-system-op`           | HC 上平台 / VC 控制面系统组件操作；重启 / 重置 VC 控制面；通过平台数据库调整 VC flavor；更新 `disallow-privileged-containers` policy；查询 HC 系统组件状态；给 VC / Subnet / AFS / CCR / AIS 授权或移除授权 | `tools/hc-system-kubectl.md`、`tools/rayctl-kubectl.md` |
 
 ---
 
